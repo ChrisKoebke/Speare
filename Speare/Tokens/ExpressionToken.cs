@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Speare.Nodes
+namespace Speare.Tokens
 {
-    public class Function : Node
+    class ExpressionToken
     {
     }
 }

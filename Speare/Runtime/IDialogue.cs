@@ -13,6 +13,6 @@ namespace Speare.Runtime
         IEnumerator SayWithOptions(string message, string[] options);
         IEnumerator ChangeSpeaker(string speakerName);
         IEnumerator ChangeFace(string face);
-        IEnumerator RunEvent(string eventName);
+        IEnumerator RunGameEvent(string eventName);
     }
 }

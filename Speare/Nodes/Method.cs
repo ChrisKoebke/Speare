@@ -1,5 +1,4 @@
-﻿using Speare.Parsing;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Speare.Nodes
 {
-    public abstract class Node
+    public class Method : Node
     {
     }
 }
