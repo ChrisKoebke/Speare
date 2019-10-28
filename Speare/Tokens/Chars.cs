@@ -15,5 +15,7 @@ namespace Speare.Tokens
         public static char BeginParameters = '(';
         public static char EndParameters = ')';
         public static char ParameterSeparator = ',';
+        public static char BeginGameEvent = '<';
+        public static char EndGameEvent = '>';
     }
 }

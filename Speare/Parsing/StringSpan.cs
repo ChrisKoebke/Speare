@@ -16,30 +16,31 @@ namespace Speare.Parsing
 
     public class StringSpan
     {
-        static MemberInfo StringBuilderValue = typeof(StringBuilder).GetMember("m_StringValue").FirstOrDefault();
-
-        internal StringSpan(string value, int startIndex, int length) : this(new StringBuilder(value), startIndex, length)
+        public StringSpan()
         {
         }
-
-        internal StringSpan(StringBuilder buffer, int startIndex, int length)
+        public StringSpan(string value, int startIndex, int length)
         {
-            _buffer = buffer;
+            Value = value;
             StartIndex = startIndex;
             Length = length;
         }
 
-        private StringBuilder _buffer;
-
-        public int StartIndex { get; private set; }
-        public int Length { get; private set; }
-        public StringSpanCase Case { get; private set; }
+        public string Value { get; set; }
+        public int StartIndex { get; set; }
+        public int Length { get; set; }
+        public StringSpanCase Case { get; set; }
+        public int EndIndex
+        {
+            get { return StartIndex + Length; }
+            set { Length = value - StartIndex; }
+        }
 
         public char this[int index]
         {
             get
             {
-                var value = _buffer[index + StartIndex];
+                var value = Value[index + StartIndex];
 
                 if (Case == StringSpanCase.Uppercase && value >= 'a' && value <= 'z')
                 {
@@ -61,12 +62,12 @@ namespace Speare.Parsing
             {
                 if (this[i] == character)
                 {
-                    yield return new StringSpan(_buffer, StartIndex + startIndex, i - startIndex);
+                    yield return new StringSpan(Value, StartIndex + startIndex, i - startIndex);
                     startIndex = i + 1;
                 }
             }
 
-            yield return new StringSpan(_buffer, StartIndex + startIndex, Length - startIndex);
+            yield return new StringSpan(Value, StartIndex + startIndex, Length - startIndex);
         }
 
         public StringSpan TrimStart()
@@ -89,7 +90,7 @@ namespace Speare.Parsing
                 }
             }
 
-            return new StringSpan(_buffer, StartIndex + delta, Length - delta);
+            return new StringSpan(Value, StartIndex + delta, Length - delta);
         }
 
         public StringSpan TrimEnd()
@@ -111,7 +112,7 @@ namespace Speare.Parsing
                 }
             }
 
-            return new StringSpan(_buffer, StartIndex, Length - delta);
+            return new StringSpan(Value, StartIndex, Length - delta);
         }
 
         public StringSpan Trim()
@@ -145,19 +146,19 @@ namespace Speare.Parsing
                 }
             }
 
-            return new StringSpan(_buffer, StartIndex + startDelta, Length - startDelta - endDelta);
+            return new StringSpan(Value, StartIndex + startDelta, Length - startDelta - endDelta);
         }
 
         public StringSpan Substring(int startIndex)
         {
-            var delta = Math.Min(startIndex, _buffer.Length - StartIndex);
-            return new StringSpan(_buffer, StartIndex + delta, Length - delta);
+            var delta = Math.Min(startIndex, Value.Length - StartIndex);
+            return new StringSpan(Value, StartIndex + delta, Length - delta);
         }
 
         public StringSpan Substring(int startIndex, int length)
         {
-            var delta = Math.Min(startIndex, _buffer.Length - StartIndex);
-            return new StringSpan(_buffer, StartIndex + delta, length);
+            var delta = Math.Min(startIndex, Value.Length - StartIndex);
+            return new StringSpan(Value, StartIndex + delta, length);
         }
 
         public int IndexOf(char character, int startIndex = 0)
@@ -174,7 +175,7 @@ namespace Speare.Parsing
 
         public StringSpan ToUpper()
         {
-            return new StringSpan(_buffer, StartIndex, Length)
+            return new StringSpan(Value, StartIndex, Length)
             {
                 Case = StringSpanCase.Uppercase
             };
@@ -182,7 +183,7 @@ namespace Speare.Parsing
 
         public StringSpan ToLower()
         {
-            return new StringSpan(_buffer, StartIndex, Length)
+            return new StringSpan(Value, StartIndex, Length)
             {
                 Case = StringSpanCase.Lowercase
             };
@@ -284,23 +285,18 @@ namespace Speare.Parsing
             return true;
         }
 
-        public StringBuilder GetBuffer()
-        {
-            return _buffer;
-        }
-
         public override string ToString()
         {
             switch (Case)
             {
                 case StringSpanCase.Uppercase:
-                    return _buffer.ToString(StartIndex, Length).ToUpper();
+                    return Value.Substring(StartIndex, Length).ToUpper();
                 case StringSpanCase.Lowercase:
-                    return _buffer.ToString(StartIndex, Length).ToLower();
+                    return Value.Substring(StartIndex, Length).ToLower();
 
             }
 
-            return _buffer.ToString(StartIndex, Length);
+            return Value.Substring(StartIndex, Length);
         }
     }
 

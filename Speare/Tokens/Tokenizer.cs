@@ -11,6 +11,14 @@ namespace Speare.Tokens
     {
         private static Token[] _tokens = new Token[32 * 1024];
 
+        public static void PreAllocate()
+        {
+            for (int i = 0; i < _tokens.Length; i++)
+            {
+                _tokens[i] = new Token();
+            }
+        }
+
         public static bool IsAlphabetLowercase(char character)
         {
             return character >= 'a' && character <= 'z';
@@ -41,23 +49,23 @@ namespace Speare.Tokens
             return character == ' ' || character == '\t';
         }
 
-        public static void SkipWhitespaceForwards(StringSpan code, ref int index)
+        public static void SkipWhitespaceForwards(string code, ref int index)
         {
             while (index < code.Length && IsWhitespace(code[index]))
                 index++;
         }
 
-        public static void SkipWhitespaceBackwards(StringSpan code, ref int index)
+        public static void SkipWhitespaceBackwards(string code, ref int index)
         {
             while (index > 0 && IsWhitespace(code[index]))
                 index--;
         }
 
-        public static void Token(StringSpan code, ref int tokenIndex, ref int startIndex, int endIndex, TokenType type)
+        public static void Token(string code, ref int tokenIndex, ref int startIndex, int endIndex, TokenType type)
         {
             var token = _tokens[tokenIndex] ?? (_tokens[tokenIndex] = new Token());
 
-            token.Code = code;
+            token.Value = code;
             token.Type = type;
             token.StartIndex = startIndex;
             token.EndIndex = endIndex;
@@ -66,7 +74,7 @@ namespace Speare.Tokens
             startIndex = endIndex;
         }
 
-        public static void Error(StringSpan code, ref int tokenIndex, ref int startIndex, int endIndex)
+        public static void Error(string code, ref int tokenIndex, ref int startIndex, int endIndex)
         {
             if (tokenIndex > 0)
             {
@@ -99,7 +107,7 @@ namespace Speare.Tokens
             return token != null ? token.Type : TokenType.None;
         }
 
-        public static bool ParseBeginBlock(StringSpan code, ref int tokenIndex, ref int startIndex, ref int depth)
+        public static bool ParseBeginBlock(string code, ref int tokenIndex, ref int startIndex, ref int depth)
         {
             if (code[startIndex] != Chars.BeginBlock)
             {
@@ -112,7 +120,7 @@ namespace Speare.Tokens
             return true;
         }
 
-        public static bool ParseEndBlock(StringSpan code, ref int tokenIndex, ref int startIndex, ref int depth)
+        public static bool ParseEndBlock(string code, ref int tokenIndex, ref int startIndex, ref int depth)
         {
             if (code[startIndex] != Chars.EndBlock)
             {
@@ -125,7 +133,7 @@ namespace Speare.Tokens
             return true;
         }
 
-        public static bool ParseSpeaker(StringSpan code, ref int tokenIndex, ref int startIndex, ref int depth)
+        public static bool ParseSpeaker(string code, ref int tokenIndex, ref int startIndex, ref int depth)
         {
             var index = startIndex;
 
@@ -148,7 +156,7 @@ namespace Speare.Tokens
             return false;
         }
 
-        public static bool ParseSentence(StringSpan code, ref int tokenIndex, ref int startIndex, ref int depth)
+        public static bool ParseSentence(string code, ref int tokenIndex, ref int startIndex, ref int depth)
         {
             if (LastTokenType(tokenIndex) != TokenType.Speaker)
                 return false;
@@ -182,7 +190,7 @@ namespace Speare.Tokens
             return false;
         }
 
-        public static bool ParseMethod(StringSpan code, ref int tokenIndex, ref int startIndex, ref int depth)
+        public static bool ParseMethod(string code, ref int tokenIndex, ref int startIndex, ref int depth)
         {
             var index = startIndex;
             while (index < code.Length)
@@ -202,7 +210,7 @@ namespace Speare.Tokens
             return false;
         }
 
-        public static bool ParseBeginParameters(StringSpan code, ref int tokenIndex, ref int startIndex, ref int depth)
+        public static bool ParseBeginParameters(string code, ref int tokenIndex, ref int startIndex, ref int depth)
         {
             if (code[startIndex] != Chars.BeginParameters)
                 return false;
@@ -211,7 +219,7 @@ namespace Speare.Tokens
             return true;
         }
 
-        public static bool ParseEndParameters(StringSpan code, ref int tokenIndex, ref int startIndex, ref int depth)
+        public static bool ParseEndParameters(string code, ref int tokenIndex, ref int startIndex, ref int depth)
         {
             if (code[startIndex] != Chars.EndParameters)
                 return false;
@@ -220,7 +228,7 @@ namespace Speare.Tokens
             return true;
         }
 
-        public static bool ParseParameterSeparator(StringSpan code, ref int tokenIndex, ref int startIndex, ref int depth)
+        public static bool ParseParameterSeparator(string code, ref int tokenIndex, ref int startIndex, ref int depth)
         {
             if (code[startIndex] != Chars.ParameterSeparator)
                 return false;
@@ -229,7 +237,27 @@ namespace Speare.Tokens
             return true;
         }
 
-        public static bool ParseIdentifier(StringSpan code, ref int tokenIndex, ref int startIndex, ref int depth)
+        public static bool ParseBeginGameEvent(string code, ref int tokenIndex, ref int startIndex, ref int depth)
+        {
+            if (code[startIndex] != Chars.BeginGameEvent ||
+                code[startIndex + 1] != Chars.BeginGameEvent)
+                return false;
+
+            Token(code, ref tokenIndex, ref startIndex, startIndex + 2, TokenType.BeginGameEvent);
+            return true;
+        }
+
+        public static bool ParseEndGameEvent(string code, ref int tokenIndex, ref int startIndex, ref int depth)
+        {
+            if (code[startIndex] != Chars.EndGameEvent ||
+                code[startIndex + 1] != Chars.EndGameEvent)
+                return false;
+
+            Token(code, ref tokenIndex, ref startIndex, startIndex + 2, TokenType.EndGameEvent);
+            return true;
+        }
+
+        public static bool ParseIdentifier(string code, ref int tokenIndex, ref int startIndex, ref int depth)
         {
             if (!IsIdentifier(code[startIndex]))
                 return false;
@@ -242,7 +270,7 @@ namespace Speare.Tokens
             return true;
         }
 
-        public static bool ParseInteger(StringSpan code, ref int tokenIndex, ref int startIndex, ref int depth)
+        public static bool ParseInteger(string code, ref int tokenIndex, ref int startIndex, ref int depth)
         {
             if (!IsInteger(code[startIndex]))
                 return false;
@@ -257,28 +285,28 @@ namespace Speare.Tokens
 
         public static Token[] Parse(string code)
         {
-            var span = code.ToSpan();
-
             int startIndex = 0,
                 tokenIndex = 0,
                 depth = 0;
 
-            while (startIndex < span.Length)
+            while (startIndex < code.Length)
             {
-                var result = ParseBeginBlock(span, ref tokenIndex, ref startIndex, ref depth) ||
-                             ParseEndBlock(span, ref tokenIndex, ref startIndex, ref depth) ||
-                             ParseSpeaker(span, ref tokenIndex, ref startIndex, ref depth) ||
-                             ParseSentence(span, ref tokenIndex, ref startIndex, ref depth) ||
-                             ParseMethod(span, ref tokenIndex, ref startIndex, ref depth) ||
-                             ParseBeginParameters(span, ref tokenIndex, ref startIndex, ref depth) ||
-                             ParseEndParameters(span, ref tokenIndex, ref startIndex, ref depth) ||
-                             ParseParameterSeparator(span, ref tokenIndex, ref startIndex, ref depth) ||
-                             ParseInteger(span, ref tokenIndex, ref startIndex, ref depth) ||
-                             ParseIdentifier(span, ref tokenIndex, ref startIndex, ref depth);
+                var result = ParseBeginBlock(code, ref tokenIndex, ref startIndex, ref depth) ||
+                             ParseEndBlock(code, ref tokenIndex, ref startIndex, ref depth) ||
+                             ParseSpeaker(code, ref tokenIndex, ref startIndex, ref depth) ||
+                             ParseSentence(code, ref tokenIndex, ref startIndex, ref depth) ||
+                             ParseMethod(code, ref tokenIndex, ref startIndex, ref depth) ||
+                             ParseBeginParameters(code, ref tokenIndex, ref startIndex, ref depth) ||
+                             ParseEndParameters(code, ref tokenIndex, ref startIndex, ref depth) ||
+                             ParseParameterSeparator(code, ref tokenIndex, ref startIndex, ref depth) ||
+                             ParseBeginGameEvent(code, ref tokenIndex, ref startIndex, ref depth) ||
+                             ParseEndGameEvent(code, ref tokenIndex, ref startIndex, ref depth) ||
+                             ParseInteger(code, ref tokenIndex, ref startIndex, ref depth) ||
+                             ParseIdentifier(code, ref tokenIndex, ref startIndex, ref depth);
 
-                if (!result && !char.IsWhiteSpace(span[startIndex]))
+                if (!result && !char.IsWhiteSpace(code[startIndex]))
                 {
-                    Error(span, ref tokenIndex, ref startIndex, startIndex + 1);
+                    Error(code, ref tokenIndex, ref startIndex, startIndex + 1);
                 }
                 else if (!result)
                 {
@@ -286,7 +314,7 @@ namespace Speare.Tokens
                 }
             }
 
-            Token(span, ref tokenIndex, ref startIndex, startIndex, TokenType.EOF);
+            Token(code, ref tokenIndex, ref startIndex, startIndex, TokenType.EOF);
             return _tokens;
         }
     }
