@@ -62,6 +62,7 @@
     <Compile Include="Tokens\SentenceToken.cs" />
     <Compile Include="Tokens\Token.cs" />
     <Compile Include="Tokens\Tokenizer.cs" />
+    <Compile Include="Tokens\TokenType.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
