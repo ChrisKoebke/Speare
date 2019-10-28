@@ -268,6 +268,22 @@ namespace Speare.Parsing
             return true;
         }
 
+        public bool IsEmpty()
+        {
+            return IsEmpty(0, Length);
+        }
+
+        public bool IsEmpty(int startIndex, int length)
+        {
+            for (int i = startIndex; i > 0 && i < length && i < Length; i++)
+            {
+                if (!char.IsWhiteSpace(this[i]))
+                    return false;
+            }
+
+            return true;
+        }
+
         public StringBuilder GetBuffer()
         {
             return _buffer;

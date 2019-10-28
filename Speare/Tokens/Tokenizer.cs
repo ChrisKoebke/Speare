@@ -66,12 +66,31 @@ namespace Speare.Tokens
             startIndex = endIndex;
         }
 
+        public static void Error(StringSpan code, ref int tokenIndex, ref int startIndex, int endIndex)
+        {
+            if (tokenIndex > 0)
+            {
+                var previous = _tokens[tokenIndex - 1];
+                if (previous != null && previous.Type == TokenType.Error && previous.EndIndex == startIndex)
+                {
+                    previous.EndIndex = endIndex;
+                    startIndex = endIndex;
+                    return;
+                }
+            }
+
+            Token(code, ref tokenIndex, ref startIndex, endIndex, TokenType.Error);
+        }
+
         public static Token LastToken(int tokenIndex)
         {
             if (tokenIndex == 0)
                 return null;
 
-            return _tokens[tokenIndex - 1];
+            while (tokenIndex > 0 && _tokens[--tokenIndex].Type == TokenType.Error)
+                ;
+
+            return _tokens[tokenIndex];
         }
 
         public static TokenType LastTokenType(int tokenIndex)
@@ -80,40 +99,46 @@ namespace Speare.Tokens
             return token != null ? token.Type : TokenType.None;
         }
 
-        public static bool ParseBeginBlock(StringSpan code, ref int tokenIndex, ref int startIndex)
+        public static bool ParseBeginBlock(StringSpan code, ref int tokenIndex, ref int startIndex, ref int depth)
         {
-            if (code[startIndex] != '{')
+            if (code[startIndex] != Chars.BeginBlock)
             {
                 return false;
             }
 
             Token(code, ref tokenIndex, ref startIndex, startIndex + 1, TokenType.BeginBlock);
+            depth++;
+
             return true;
         }
 
-        public static bool ParseEndBlock(StringSpan code, ref int tokenIndex, ref int startIndex)
+        public static bool ParseEndBlock(StringSpan code, ref int tokenIndex, ref int startIndex, ref int depth)
         {
-            if (code[startIndex] != '}')
+            if (code[startIndex] != Chars.EndBlock)
             {
                 return false;
             }
 
             Token(code, ref tokenIndex, ref startIndex, startIndex + 1, TokenType.EndBlock);
+            depth--;
+
             return true;
         }
 
-        public static bool ParseSpeaker(StringSpan code, ref int tokenIndex, ref int startIndex)
+        public static bool ParseSpeaker(StringSpan code, ref int tokenIndex, ref int startIndex, ref int depth)
         {
             var index = startIndex;
 
             while (index < code.Length)
             {
-                if (!IsIdentifier(code[startIndex]) || code[index] == '\n')
+                if (!IsIdentifier(code[startIndex]) || code[index] == Chars.NewLine)
                     return false;
 
-                if (code[index] == ':')
+                if (code[index] == Chars.SpeakerSeparator)
                 {
                     Token(code, ref tokenIndex, ref startIndex, index, TokenType.Speaker);
+                    startIndex++;
+
                     return true;
                 }
 
@@ -123,25 +148,25 @@ namespace Speare.Tokens
             return false;
         }
 
-        public static bool ParseSentence(StringSpan code, ref int tokenIndex, ref int startIndex)
+        public static bool ParseSentence(StringSpan code, ref int tokenIndex, ref int startIndex, ref int depth)
         {
             if (LastTokenType(tokenIndex) != TokenType.Speaker)
                 return false;
 
             var character = code[startIndex];
-            if (character == ' ' || character == ':' || character == '\t')
+            if (character == ' ' || character == '\t' || character == Chars.SpeakerSeparator)
                 return false;
 
             var index = startIndex;
 
             while (index < code.Length)
             {
-                if (code[index] == '\n')
+                if (code[index] == Chars.NewLine)
                 {
                     Token(code, ref tokenIndex, ref startIndex, index, TokenType.Sentence);
                     return true;
                 }
-                if (code[index] == '}')
+                if (code[index] == Chars.EndBlock)
                 {
                     index--;
 
@@ -157,14 +182,14 @@ namespace Speare.Tokens
             return false;
         }
 
-        public static bool ParseMethodName(StringSpan code, ref int tokenIndex, ref int startIndex)
+        public static bool ParseMethod(StringSpan code, ref int tokenIndex, ref int startIndex, ref int depth)
         {
             var index = startIndex;
             while (index < code.Length)
             {
-                if (code[index] == '(' && index > startIndex)
+                if (code[index] == Chars.BeginParameters && index > startIndex)
                 {
-                    Token(code, ref tokenIndex, ref startIndex, index, TokenType.MethodName);
+                    Token(code, ref tokenIndex, ref startIndex, index, depth == 0 ? TokenType.MethodDefinition : TokenType.MethodCall);
                     return true;
                 }
 
@@ -177,50 +202,57 @@ namespace Speare.Tokens
             return false;
         }
 
-        public static bool ParseMethodParameters(StringSpan code, ref int tokenIndex, ref int startIndex)
+        public static bool ParseBeginParameters(StringSpan code, ref int tokenIndex, ref int startIndex, ref int depth)
         {
-            if (LastTokenType(tokenIndex) != TokenType.MethodName || code[startIndex] != '(')
+            if (code[startIndex] != Chars.BeginParameters)
                 return false;
 
-            // Skip open bracket and white space
-            startIndex++;
-            SkipWhitespaceForwards(code, ref startIndex);
+            Token(code, ref tokenIndex, ref startIndex, startIndex + 1, TokenType.BeginParameters);
+            return true;
+        }
+
+        public static bool ParseEndParameters(StringSpan code, ref int tokenIndex, ref int startIndex, ref int depth)
+        {
+            if (code[startIndex] != Chars.EndParameters)
+                return false;
+
+            Token(code, ref tokenIndex, ref startIndex, startIndex + 1, TokenType.EndParameters);
+            return true;
+        }
+
+        public static bool ParseParameterSeparator(StringSpan code, ref int tokenIndex, ref int startIndex, ref int depth)
+        {
+            if (code[startIndex] != Chars.ParameterSeparator)
+                return false;
+
+            Token(code, ref tokenIndex, ref startIndex, startIndex + 1, TokenType.ParameterSeparator);
+            return true;
+        }
+
+        public static bool ParseIdentifier(StringSpan code, ref int tokenIndex, ref int startIndex, ref int depth)
+        {
+            if (!IsIdentifier(code[startIndex]))
+                return false;
 
             var index = startIndex;
-            var tokenCount = 0;
-
-            while (index < code.Length)
-            {
-                if (code[index] == ')' || code[index] == ',')
-                {
-                    var endIndex = index - 1;
-                    SkipWhitespaceBackwards(code, ref endIndex);
-
-                    Token(code, ref tokenIndex, ref startIndex, endIndex + 1, TokenType.MethodParameter);
-                    tokenCount++;
-
-                    if (code[index] != ')')
-                    {
-                        // Skip semicolon and white spaces
-                        index++;
-                        SkipWhitespaceForwards(code, ref index);
-                    }
-                    else
-                    {
-                        return true;
-                    }
-
-                    startIndex = index;
-                }
-                else if (!IsWhitespace(code[index]))
-                {
-                    return false;
-                }
-
+            while (IsIdentifier(code[index]))
                 index++;
-            }
 
-            return false;
+            Token(code, ref tokenIndex, ref startIndex, index, TokenType.Identifier);
+            return true;
+        }
+
+        public static bool ParseInteger(StringSpan code, ref int tokenIndex, ref int startIndex, ref int depth)
+        {
+            if (!IsInteger(code[startIndex]))
+                return false;
+
+            var index = startIndex;
+            while (IsInteger(code[index]))
+                index++;
+
+            Token(code, ref tokenIndex, ref startIndex, index, TokenType.Integer);
+            return true;
         }
 
         public static Token[] Parse(string code)
@@ -228,18 +260,27 @@ namespace Speare.Tokens
             var span = code.ToSpan();
 
             int startIndex = 0,
-                tokenIndex = 0;
+                tokenIndex = 0,
+                depth = 0;
 
             while (startIndex < span.Length)
             {
-                var result = ParseBeginBlock(span, ref tokenIndex, ref startIndex) ||
-                             ParseEndBlock(span, ref tokenIndex, ref startIndex) ||
-                             ParseSpeaker(span, ref tokenIndex, ref startIndex) ||
-                             ParseSentence(span, ref tokenIndex, ref startIndex) ||
-                             ParseMethodName(span, ref tokenIndex, ref startIndex) ||
-                             ParseMethodParameters(span, ref tokenIndex, ref startIndex);
+                var result = ParseBeginBlock(span, ref tokenIndex, ref startIndex, ref depth) ||
+                             ParseEndBlock(span, ref tokenIndex, ref startIndex, ref depth) ||
+                             ParseSpeaker(span, ref tokenIndex, ref startIndex, ref depth) ||
+                             ParseSentence(span, ref tokenIndex, ref startIndex, ref depth) ||
+                             ParseMethod(span, ref tokenIndex, ref startIndex, ref depth) ||
+                             ParseBeginParameters(span, ref tokenIndex, ref startIndex, ref depth) ||
+                             ParseEndParameters(span, ref tokenIndex, ref startIndex, ref depth) ||
+                             ParseParameterSeparator(span, ref tokenIndex, ref startIndex, ref depth) ||
+                             ParseInteger(span, ref tokenIndex, ref startIndex, ref depth) ||
+                             ParseIdentifier(span, ref tokenIndex, ref startIndex, ref depth);
 
-                if (!result)
+                if (!result && !char.IsWhiteSpace(span[startIndex]))
+                {
+                    Error(span, ref tokenIndex, ref startIndex, startIndex + 1);
+                }
+                else if (!result)
                 {
                     startIndex++;
                 }

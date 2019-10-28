@@ -13,9 +13,16 @@ namespace Speare.Tokens
         EndBlock,
         Speaker,
         Sentence,
-        MethodName,
-        MethodParameter,
-        Unparsable,
+        MethodDefinition,
+        MethodCall,
+        Identifier,
+        ParameterSeparator,
+        BeginParameters,
+        EndParameters,
+        Integer,
+        Double,
+        String,
+        Error,
         EOF
     }
 }

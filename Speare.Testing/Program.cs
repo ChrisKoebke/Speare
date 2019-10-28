@@ -12,13 +12,13 @@ namespace Speare.Testing
     {
         static void Main(string[] args)
         {
-            var code = "{\n\tTobi: Hey Doc, how are you?\n\tDoc: I'm good!\n\tTestMethod(  test , param% )\n\t{\n\t}\n}";
+            var code = "{\n\tTobi: Hey Doc, how are you?\n\tDoc: I'm good!\n\tTestMethod(  3, 4 )\n}\n\nTestMethod(a, b)\n{\n}";
 
             var tokens = Tokenizer.Parse(code);
 
             Console.WriteLine(code);
             Console.WriteLine();
-            Console.WriteLine("=== PARSER RESULT ===");
+            Console.WriteLine("=== TOKENIZER RESULT ===");
 
             foreach (var token in tokens)
             {
