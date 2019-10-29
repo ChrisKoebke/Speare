@@ -226,13 +226,13 @@ namespace Speare.Runtimes
             fixed (byte* scope = Scope)
             {
                 var registerA = *(pointer + Address);
-                var registerB = *(pointer + Address + 1);
-
-                Address += 2;
-
                 var typeA = *(DataType*)(scope + registerA * 5);
+
+                var registerB = *(pointer + Address + 1);
                 var typeB = *(DataType*)(scope + registerB * 5);
 
+                Address += 2;
+                
                 if (typeA == DataType.Int && typeB == DataType.Int)
                 {
                     *(DataType*)(scope) = DataType.Int;
