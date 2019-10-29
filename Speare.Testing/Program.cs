@@ -1,5 +1,4 @@
 ﻿using Speare.Parsing;
-using Speare.Tokens;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -14,9 +13,22 @@ namespace Speare.Testing
         static void Main(string[] args)
         {
             var code = "{\n\tTobi: Hey Doc, how are you?\n\tDoc: I'm good!\n\tTestMethod(  3, 4 )\n}\n\nTestMethod(a, b)\n{\n}";
+            for (int i = 0; i < 11; i++)
+            {
+                code += code;
+            }
 
-            Tokenizer.PreAllocate();
-            var tokens = Tokenizer.Parse(code);
+            Lexer.Allocate();
+
+            var a = "123.013".ToSpan().ToFloat();
+            var b = "3.000513".ToSpan().ToFloat();
+            var c = "184641".ToSpan().ToInt32();
+
+            var sw = Stopwatch.StartNew();
+            var tokens = Lexer.Tokenize(code);
+            sw.Stop();
+
+            var node = Parser.Parse(tokens);
 
             Console.WriteLine(code);
             Console.WriteLine();
@@ -36,6 +48,7 @@ namespace Speare.Testing
                 );
             }
 
+            Console.WriteLine(sw.Elapsed.TotalMilliseconds + "ms for " + code.Split('\n').Count() + " lines");
             Console.ReadLine();
         }
     }

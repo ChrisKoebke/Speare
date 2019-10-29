@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -14,60 +15,50 @@ namespace Speare.Parsing
         Lowercase
     }
 
-    public class StringSpan
+    public unsafe class StringSpan
     {
-        public StringSpan()
+        internal StringSpan()
         {
         }
-        public StringSpan(string value, int startIndex, int length)
+
+        public StringSpan(char* pointer, int startIndex, int length)
         {
-            Value = value;
+            Pointer = pointer;
             StartIndex = startIndex;
             Length = length;
         }
 
-        public string Value { get; set; }
-        public int StartIndex { get; set; }
-        public int Length { get; set; }
-        public StringSpanCase Case { get; set; }
+        public char* Pointer;
+        public int StartIndex;
+        public int Length;
+        
+        public char this[int index]
+        {
+            get { return *(Pointer + index + StartIndex); }
+        }
+
         public int EndIndex
         {
             get { return StartIndex + Length; }
             set { Length = value - StartIndex; }
         }
 
-        public char this[int index]
+        public List<StringSpan> Split(char character)
         {
-            get
-            {
-                var value = Value[index + StartIndex];
-
-                if (Case == StringSpanCase.Uppercase && value >= 'a' && value <= 'z')
-                {
-                    return (char)(value & ~0x20);
-                }
-                else if (Case == StringSpanCase.Lowercase && value >= 'A' && value <= 'Z')
-                {
-                    return (char)(value | 0x20);
-                }
-
-                return value;
-            }
-        }
-
-        public IEnumerable<StringSpan> Split(char character)
-        {
+            var list = new List<StringSpan>();
             var startIndex = 0;
+
             for (int i = 0; i < Length; i++)
             {
                 if (this[i] == character)
                 {
-                    yield return new StringSpan(Value, StartIndex + startIndex, i - startIndex);
+                    list.Add(new StringSpan(Pointer, StartIndex + startIndex, i - startIndex));
                     startIndex = i + 1;
                 }
             }
 
-            yield return new StringSpan(Value, StartIndex + startIndex, Length - startIndex);
+            list.Add(new StringSpan(Pointer, StartIndex + startIndex, Length - startIndex));
+            return list;
         }
 
         public StringSpan TrimStart()
@@ -90,7 +81,7 @@ namespace Speare.Parsing
                 }
             }
 
-            return new StringSpan(Value, StartIndex + delta, Length - delta);
+            return new StringSpan(Pointer, StartIndex + delta, Length - delta);
         }
 
         public StringSpan TrimEnd()
@@ -112,7 +103,7 @@ namespace Speare.Parsing
                 }
             }
 
-            return new StringSpan(Value, StartIndex, Length - delta);
+            return new StringSpan(Pointer, StartIndex, Length - delta);
         }
 
         public StringSpan Trim()
@@ -146,19 +137,17 @@ namespace Speare.Parsing
                 }
             }
 
-            return new StringSpan(Value, StartIndex + startDelta, Length - startDelta - endDelta);
+            return new StringSpan(Pointer, StartIndex + startDelta, Length - startDelta - endDelta);
         }
 
         public StringSpan Substring(int startIndex)
         {
-            var delta = Math.Min(startIndex, Value.Length - StartIndex);
-            return new StringSpan(Value, StartIndex + delta, Length - delta);
+            return new StringSpan(Pointer, StartIndex + startIndex, Length - startIndex);
         }
 
         public StringSpan Substring(int startIndex, int length)
         {
-            var delta = Math.Min(startIndex, Value.Length - StartIndex);
-            return new StringSpan(Value, StartIndex + delta, length);
+            return new StringSpan(Pointer, StartIndex + startIndex, length);
         }
 
         public int IndexOf(char character, int startIndex = 0)
@@ -172,23 +161,7 @@ namespace Speare.Parsing
             
             return -1;
         }
-
-        public StringSpan ToUpper()
-        {
-            return new StringSpan(Value, StartIndex, Length)
-            {
-                Case = StringSpanCase.Uppercase
-            };
-        }
-
-        public StringSpan ToLower()
-        {
-            return new StringSpan(Value, StartIndex, Length)
-            {
-                Case = StringSpanCase.Lowercase
-            };
-        }
-
+        
         public bool Contains(string value)
         {
             var endIndex = Length - value.Length;
@@ -285,26 +258,72 @@ namespace Speare.Parsing
             return true;
         }
 
-        public override string ToString()
+        private static readonly int[] _decimals = new[]
         {
-            switch (Case)
-            {
-                case StringSpanCase.Uppercase:
-                    return Value.Substring(StartIndex, Length).ToUpper();
-                case StringSpanCase.Lowercase:
-                    return Value.Substring(StartIndex, Length).ToLower();
+            1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000
+        };
 
+        public int? ToInt32()
+        {
+            var result = 0;
+
+            for (int i = 0; i < Length; i++)
+            {
+                if (!Chars.IsInteger(this[i]))
+                    return null;
+
+                result += (this[i] - '0') * _decimals[Length - i - 1];
             }
 
-            return Value.Substring(StartIndex, Length);
+            return result;
+        }
+
+        private static readonly float[] _fractions = new[]
+        {
+            0.1f, 0.01f, 0.001f, 0.0001f, 0.00001f, 0.000001f, 0.0000001f, 0.00000001f, 0.000000001f, 0.000000001f, 0.0000000001f, 0.00000000001f, 0.000000000001f,
+            0.0000000000001f, 0.00000000000001f, 0.000000000000001f, 0.0000000000000001f, 0.00000000000000001f, 0.000000000000000001f, 0.0000000000000000001f
+        };
+
+        public float? ToFloat()
+        {
+            var result = 0.0f;
+            var fractionIndex = IndexOf('.');
+
+            for (int i = 0; i < Length; i++)
+            {
+                if (!Chars.IsFloat(this[i]))
+                    return null;
+
+                if (i == fractionIndex)
+                    continue;
+
+                if (i < fractionIndex)
+                {
+                    result += (this[i] - '0') * _decimals[fractionIndex - i - 1];
+                }
+                else
+                {
+                    result += (this[i] - '0') * _fractions[i - fractionIndex - 1];
+                }
+            }
+
+            return result;
+        }
+
+        public override string ToString()
+        {
+            return new string(Pointer, StartIndex, Length);
         }
     }
 
-    public static class StringSpanExtensions
+    public static unsafe class StringSpanExtensions
     {
         public static StringSpan ToSpan(this string value)
         {
-            return new StringSpan(value, 0, value.Length);
+            fixed (char* pointer = value)
+            {
+                return new StringSpan(pointer, 0, value.Length);
+            }
         }
     }
 }

@@ -5,11 +5,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Speare.Tokens
+namespace Speare.Parsing
 {
-    public class Token : StringSpan
+    public class Token
     {
-        public TokenType Type { get; set; }
+        public StringSpan Span = new StringSpan();
+        public TokenType Type;
         
         public string ToFormattedString()
         {
@@ -17,6 +18,11 @@ namespace Speare.Tokens
                 return "EOF";
 
             return string.Format("{0} '{1}'", Type.ToString(), base.ToString());
+        }
+
+        public override string ToString()
+        {
+            return Span.ToString();
         }
     }
 }

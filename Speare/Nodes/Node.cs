@@ -9,5 +9,6 @@ namespace Speare.Nodes
 {
     public abstract class Node
     {
+        public List<Node> Children { get; private set; } = new List<Node>();
     }
 }

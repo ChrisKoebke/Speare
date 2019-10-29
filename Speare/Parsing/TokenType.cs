@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Speare.Tokens
+namespace Speare.Parsing
 {
     public enum TokenType
     {
@@ -23,7 +23,7 @@ namespace Speare.Tokens
         EndGameEvent,
         GameEvent,
         Integer,
-        Double,
+        Float,
         String,
         Error,
         EOF
