@@ -4,9 +4,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Speare.Nodes
+namespace Speare.Ops
 {
-    public class Method : Node
+    public enum DataType : byte
     {
+        None,
+        Int,
+        Float,
+        ChrPointer
     }
 }

@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Speare.Nodes
+namespace Speare
 {
-    public class Root : Node
+    public class SpeareHost
     {
     }
 }

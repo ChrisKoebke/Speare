@@ -36,10 +36,10 @@ namespace Speare.Parsing
         {
             var token = _tokens[tokenIndex] ?? (_tokens[tokenIndex] = new Token());
 
-            fixed (char* pointer = code)
+            fixed (char* stringPointer = code)
             {
                 token.Type = type;
-                token.Span.Pointer = pointer;
+                token.Span.StringPointer = stringPointer;
                 token.Span.StartIndex = startIndex;
                 token.Span.Length = endIndex - startIndex;
             }

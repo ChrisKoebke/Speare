@@ -23,18 +23,18 @@ namespace Speare.Parsing
 
         public StringSpan(char* pointer, int startIndex, int length)
         {
-            Pointer = pointer;
+            StringPointer = pointer;
             StartIndex = startIndex;
             Length = length;
         }
 
-        public char* Pointer;
+        public char* StringPointer;
         public int StartIndex;
         public int Length;
         
         public char this[int index]
         {
-            get { return *(Pointer + index + StartIndex); }
+            get { return *(StringPointer + index + StartIndex); }
         }
 
         public int EndIndex
@@ -52,12 +52,12 @@ namespace Speare.Parsing
             {
                 if (this[i] == character)
                 {
-                    list.Add(new StringSpan(Pointer, StartIndex + startIndex, i - startIndex));
+                    list.Add(new StringSpan(StringPointer, StartIndex + startIndex, i - startIndex));
                     startIndex = i + 1;
                 }
             }
 
-            list.Add(new StringSpan(Pointer, StartIndex + startIndex, Length - startIndex));
+            list.Add(new StringSpan(StringPointer, StartIndex + startIndex, Length - startIndex));
             return list;
         }
 
@@ -81,7 +81,7 @@ namespace Speare.Parsing
                 }
             }
 
-            return new StringSpan(Pointer, StartIndex + delta, Length - delta);
+            return new StringSpan(StringPointer, StartIndex + delta, Length - delta);
         }
 
         public StringSpan TrimEnd()
@@ -103,7 +103,7 @@ namespace Speare.Parsing
                 }
             }
 
-            return new StringSpan(Pointer, StartIndex, Length - delta);
+            return new StringSpan(StringPointer, StartIndex, Length - delta);
         }
 
         public StringSpan Trim()
@@ -137,17 +137,17 @@ namespace Speare.Parsing
                 }
             }
 
-            return new StringSpan(Pointer, StartIndex + startDelta, Length - startDelta - endDelta);
+            return new StringSpan(StringPointer, StartIndex + startDelta, Length - startDelta - endDelta);
         }
 
         public StringSpan Substring(int startIndex)
         {
-            return new StringSpan(Pointer, StartIndex + startIndex, Length - startIndex);
+            return new StringSpan(StringPointer, StartIndex + startIndex, Length - startIndex);
         }
 
         public StringSpan Substring(int startIndex, int length)
         {
-            return new StringSpan(Pointer, StartIndex + startIndex, length);
+            return new StringSpan(StringPointer, StartIndex + startIndex, length);
         }
 
         public int IndexOf(char character, int startIndex = 0)
@@ -312,7 +312,7 @@ namespace Speare.Parsing
 
         public override string ToString()
         {
-            return new string(Pointer, StartIndex, Length);
+            return new string(StringPointer, StartIndex, Length);
         }
     }
 
