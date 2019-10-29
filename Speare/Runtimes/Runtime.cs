@@ -169,7 +169,7 @@ namespace Speare.Runtimes
             }
         }
 
-        public void OpJumpIf()
+        public void OpJumpIfTrue()
         {
             fixed (byte* pointer = Ops)
             fixed (byte* scope = Scope)
@@ -201,6 +201,10 @@ namespace Speare.Runtimes
                 {
                     *(DataType*)(scope + (int)Register.ReturnAddress * 5) = DataType.Int;
                     *(int*)(scope + (int)Register.ReturnAddress * 5 + 1) = Address;
+
+                    // TODO: Instead of copying the registers from the current scope the compiler
+                    //       should be responsible of creating a new scope and running the passed
+                    //       parameter OPs
 
                     for (int i = 0; i < parameterCount; i++)
                     {
@@ -346,8 +350,8 @@ namespace Speare.Runtimes
                     case OpCode.Jump:
                         OpJump();
                         break;
-                    case OpCode.JumpIf:
-                        OpJumpIf();
+                    case OpCode.JumpIfTrue:
+                        OpJumpIfTrue();
                         break;
                     case OpCode.Add:
                         OpAdd();

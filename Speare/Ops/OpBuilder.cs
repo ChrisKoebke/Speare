@@ -132,14 +132,14 @@ namespace Speare.Ops
             return this;
         }
 
-        public OpBuilder JumpIf(string label)
+        public OpBuilder JumpIfTrue(string label)
         {
             return JumpIf(_labels[label]);
         }
 
         public OpBuilder JumpIf(int address)
         {
-            _ops.Write((short)OpCode.JumpIf);
+            _ops.Write((short)OpCode.JumpIfTrue);
             _ops.Write(address);
             return this;
         }

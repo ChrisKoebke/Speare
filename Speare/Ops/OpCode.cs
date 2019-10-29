@@ -15,7 +15,7 @@ namespace Speare.Ops
         Move,
         Compare,
         Jump,
-        JumpIf,
+        JumpIfTrue,
         Call,
         Method,
         Return,
