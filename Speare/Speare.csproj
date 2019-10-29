@@ -56,7 +56,6 @@
     <Compile Include="Ops\OpCode.cs" />
     <Compile Include="Runtimes\Interop.cs" />
     <Compile Include="Runtimes\Register.cs" />
-    <Compile Include="SpeareCompiler.cs" />
     <Compile Include="Parsing\Utils.cs" />
     <Compile Include="Runtimes\IRuntime.cs" />
     <Compile Include="Parsing\StringSpan.cs" />
@@ -66,8 +65,6 @@
     <Compile Include="Parsing\Chars.cs" />
     <Compile Include="Parsing\TokenType.cs" />
     <Compile Include="Runtimes\Runtime.cs" />
-    <Compile Include="Speare.cs" />
-    <Compile Include="SpeareScript.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

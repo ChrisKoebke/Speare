@@ -60,12 +60,12 @@ namespace Speare.Runtimes
             }
         }
 
-        public string ReadString(int index)
+        public string ReadFromBuffer(int headerIndex)
         {
             fixed (byte* headerPointer = Chrh)
             {
-                int startIndex = *(int*)(headerPointer + index * 8);
-                int length = *(int*)(headerPointer + index * 8 + 4);
+                int startIndex = *(int*)(headerPointer + headerIndex * 8);
+                int length = *(int*)(headerPointer + headerIndex * 8 + 4);
 
                 fixed (byte* buffer = Chrb)
                 {
@@ -80,12 +80,14 @@ namespace Speare.Runtimes
             {
                 switch (*(DataType*)(scope + index * 5))
                 {
+                    case DataType.Bool:
+                        return *(bool*)(scope + index * 5 + 1);
                     case DataType.Int:
                         return *(int*)(scope + index * 5 + 1);
                     case DataType.Float:
                         return *(float*)(scope + index * 5 + 1);
                     case DataType.ChrPointer:
-                        return ReadString(*(int*)(scope + index * 5 + 1));
+                        return ReadFromBuffer(*(int*)(scope + index * 5 + 1));
                     default:
                         return null;
                 }
@@ -137,19 +139,6 @@ namespace Speare.Runtimes
             }
         }
 
-        public void OpLoad()
-        {
-            fixed (byte* pointer = Ops)
-            fixed (byte* scope = Scope)
-            {
-                var register = *(pointer + Address);
-                Address++;
-
-                *(DataType*)(scope) = *(DataType*)(scope + register * 5);
-                *(int*)(scope + 1) = *(int*)(scope + register * 5 + 1);
-            }
-        }
-
         public void OpCompare()
         {
             fixed (byte* pointer = Ops)
@@ -160,10 +149,34 @@ namespace Speare.Runtimes
 
                 Address += 2;
 
-                *(DataType*)(scope) = DataType.Int;
-                *(int*)(scope + 1) = (int)ReadFromScope(a) < (int)ReadFromScope(b) ? 1 : 0;
+                *(DataType*)(scope) = DataType.Bool;
+                *(bool*)(scope + 1) = (int)ReadFromScope(a) < (int)ReadFromScope(b);
 
                 Address += 1;
+            }
+        }
+
+        public void OpJump()
+        {
+            fixed (byte* pointer = Ops)
+            {
+                Address = *(int*)(pointer + Address);
+            }
+        }
+
+        public void OpJumpIf()
+        {
+            fixed (byte* pointer = Ops)
+            fixed (byte* scope = Scope)
+            {
+                // Last result is false
+                if (*(DataType*)scope != DataType.Bool || *(bool*)(scope + 1) == false)
+                {
+                    Address += 4;
+                    return;
+                }
+
+                Address = *(int*)(pointer + Address);
             }
         }
 
@@ -193,30 +206,6 @@ namespace Speare.Runtimes
                 }
 
                 info.Invoke(null, parameters);
-            }
-        }
-
-        public void OpJump()
-        {
-            fixed (byte* pointer = Ops)
-            {
-                Address = *(int*)(pointer + Address);
-            }
-        }
-
-        public void OpJumpIf()
-        {
-            fixed (byte* pointer = Ops)
-            fixed (byte* scope = Scope)
-            {
-                // Last result is false
-                if (*(int*)(scope + 1) == 0)
-                {
-                    Address += 4;
-                    return;
-                }
-
-                Address = *(int*)(pointer + Address);
             }
         }
 

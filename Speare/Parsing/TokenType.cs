@@ -19,12 +19,13 @@ namespace Speare.Parsing
         ParameterSeparator,
         BeginParameters,
         EndParameters,
-        BeginGameEvent,
-        EndGameEvent,
-        GameEvent,
+        Operator,
         Integer,
         Float,
         String,
+        BeginGameEvent,
+        EndGameEvent,
+        GameEvent,
         Error,
         EOF
     }

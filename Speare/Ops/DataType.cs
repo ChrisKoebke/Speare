@@ -9,9 +9,9 @@ namespace Speare.Ops
     public enum DataType : byte
     {
         None,
+        Bool,
         Int,
         Float,
-        Bool,
         ChrPointer
     }
 }
