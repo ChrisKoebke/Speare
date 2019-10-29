@@ -11,24 +11,12 @@ namespace Speare.Ops
 {
     public unsafe class OpBuilder
     {
-        public OpBuilder()
-        {
-            _ops = new BinaryWriter(_opsStream);
-            _chrh = new BinaryWriter(_chrhStream);
-            _chrb = new BinaryWriter(_chrbStream);
-        }
-
-        private MemoryStream _opsStream = new MemoryStream();
-        private BinaryWriter _ops;
-
+        private ArrayBuilder _ops = new ArrayBuilder();
+        private ArrayBuilder _chrh = new ArrayBuilder();
+        private ArrayBuilder _chrb = new ArrayBuilder();
+        
         private int _chrhAddress = 0;
         private int _chrbOpAddress = 0;
-
-        private MemoryStream _chrhStream = new MemoryStream();
-        private BinaryWriter _chrh;
-
-        private MemoryStream _chrbStream = new MemoryStream();
-        private BinaryWriter _chrb;
 
         private Dictionary<string, int> _labels = new Dictionary<string, int>();
 
@@ -72,14 +60,8 @@ namespace Speare.Ops
             _chrh.Write(_chrbOpAddress);
             _chrh.Write(value.Length);
 
-            fixed (char* pointer = value)
-            {
-                for (int i = 0; i < value.Length; i++)
-                {
-                    _chrb.Write(*(pointer + i));
-                }
-            }
-
+            _chrb.Write(value);
+            
             _chrbOpAddress += value.Length;
             _chrhAddress += 1;
 
@@ -88,7 +70,7 @@ namespace Speare.Ops
 
         public OpBuilder Label(string name)
         {
-            _labels[name] = (int)_opsStream.Position;
+            _labels[name] = _ops.Position;
             return this;
         }
 
@@ -184,9 +166,9 @@ namespace Speare.Ops
 
         public void Build(out byte[] ops, out byte[] chrh, out byte[] chrb, out byte[] mth)
         {
-            ops = _opsStream.ToArray();
-            chrh = _chrhStream.ToArray();
-            chrb = _chrbStream.ToArray();
+            ops = _ops.Data;
+            chrh = _chrh.Data;
+            chrb = _chrb.Data;
             mth = new byte[0];
         }
     }

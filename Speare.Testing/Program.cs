@@ -1,5 +1,4 @@
-﻿using Speare.Compilation;
-using Speare.Ops;
+﻿using Speare.Ops;
 using Speare.Parsing;
 using Speare.Runtimes;
 using System;
