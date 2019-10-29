@@ -32,28 +32,28 @@ namespace Speare.Ops
             return this;
         }
 
-        public OpBuilder Constant(Var var, int value)
+        public OpBuilder Constant(Register reg, int value)
         {
             _ops.Write((short)OpCode.Constant);
-            _ops.Write((byte)var);
+            _ops.Write((byte)reg);
             _ops.Write((byte)DataType.Int);
             _ops.Write(value);
             return this;
         }
 
-        public OpBuilder Constant(Var var, float value)
+        public OpBuilder Constant(Register reg, float value)
         {
             _ops.Write((short)OpCode.Constant);
-            _ops.Write((byte)var);
+            _ops.Write((byte)reg);
             _ops.Write((byte)DataType.Float);
             _ops.Write(value);
             return this;
         }
 
-        public OpBuilder Constant(Var var, string value)
+        public OpBuilder Constant(Register reg, string value)
         {
             _ops.Write((short)OpCode.Constant);
-            _ops.Write((byte)var);
+            _ops.Write((byte)reg);
             _ops.Write((byte)DataType.ChrPointer);
             _ops.Write(_chrhAddress);
 
@@ -73,32 +73,16 @@ namespace Speare.Ops
             _labels[name] = _ops.Position;
             return this;
         }
-
-        public OpBuilder Move(Var var)
-        {
-            return Move((byte)var);
-        }
-
-        public OpBuilder Move(byte var)
+        
+        public OpBuilder Move(Register source, Register destination)
         {
             _ops.Write((short)OpCode.Move);
-            _ops.Write(var);
+            _ops.Write((byte)source);
+            _ops.Write((byte)destination);
             return this;
         }
-
-        public OpBuilder Load(Var var)
-        {
-            return Load((byte)var);
-        }
-
-        public OpBuilder Load(byte var)
-        {
-            _ops.Write((short)OpCode.Load);
-            _ops.Write(var);
-            return this;
-        }
-
-        public OpBuilder Compare(Var a, Var b, Comparison comparison)
+        
+        public OpBuilder Compare(Register a, Register b, Comparison comparison)
         {
             _ops.Write((short)OpCode.Compare);
             _ops.Write((byte)a);
@@ -139,28 +123,23 @@ namespace Speare.Ops
             return this;
         }
 
-        public OpBuilder Add(Var varA, Var varB)
-        {
-            return Add((byte)varA, (byte)varB);
-        }
-
-        public OpBuilder Add(byte varA, byte varB)
+        public OpBuilder Add(Register regA, Register regB)
         {
             _ops.Write((short)OpCode.Add);
-            _ops.Write(varA);
-            _ops.Write(varB);
+            _ops.Write((byte)regA);
+            _ops.Write((byte)regB);
             return this;
         }
 
-        public OpBuilder DebugPrint(Var var)
+        public OpBuilder DebugPrint(Register reg)
         {
-            return DebugPrint((byte)var);
+            return DebugPrint((byte)reg);
         }
 
-        public OpBuilder DebugPrint(byte var)
+        public OpBuilder DebugPrint(byte reg)
         {
             _ops.Write((short)OpCode.DebugPrint);
-            _ops.Write(var);
+            _ops.Write(reg);
             return this;
         }
 

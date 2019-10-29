@@ -94,6 +94,7 @@ namespace Speare.Ops
             fixed (char* source = value)
             fixed (byte* destination = Data)
             {
+                // TODO: optimize
                 for (int i = 0; i < value.Length; i++)
                 {
                     *(destination + i) = *(byte*)(source + i);

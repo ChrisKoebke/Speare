@@ -23,17 +23,17 @@ namespace Speare.Testing
             Interop.RegisterMethodsOf<Program>();
 
             var builder = new OpBuilder();
-            builder.Constant(Var.A, 0)
-                   .Constant(Var.B, 5)
-                   .Label("AfterInitVarA")
-                   .Constant(Var.C, 1)
-                   .Add(Var.A, Var.C)
-                   .Move(Var.A)
-                   .DebugPrint(Var.A)
-                   .Compare(Var.A, Var.B, Comparison.SmallerThan)
-                   .JumpIf("AfterInitVarA")
-                   .Constant(Var.D, "We made it through the loop!")
-                   .DebugPrint(Var.D);
+            builder.Constant(Register.A, 0)
+                   .Constant(Register.B, 5)
+                   .Label(":loop")
+                   .Constant(Register.C, 1)
+                   .Add(Register.A, Register.C)
+                   .Move(Register.LastResult, Register.A)
+                   .DebugPrint(Register.A)
+                   .Compare(Register.A, Register.B, Comparison.SmallerThan)
+                   .JumpIf(":loop")
+                   .Constant(Register.D, "We made it through the loop!")
+                   .DebugPrint(Register.D);
 
             var runtime = Runtime.FromBuilder(builder);
             runtime.Run().MoveNext();

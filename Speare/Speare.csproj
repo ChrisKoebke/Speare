@@ -55,7 +55,7 @@
     <Compile Include="Ops\OpBuilder.cs" />
     <Compile Include="Ops\OpCode.cs" />
     <Compile Include="Runtimes\Interop.cs" />
-    <Compile Include="Runtimes\Var.cs" />
+    <Compile Include="Runtimes\Register.cs" />
     <Compile Include="SpeareCompiler.cs" />
     <Compile Include="Parsing\Utils.cs" />
     <Compile Include="Runtimes\IRuntime.cs" />

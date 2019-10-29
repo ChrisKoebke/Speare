@@ -127,11 +127,13 @@ namespace Speare.Runtimes
             fixed (byte* pointer = Ops)
             fixed (byte* scope = Scope)
             {
-                var register = *(pointer + Address);
-                Address++;
+                var source = *(pointer + Address);
+                var destination = *(pointer + Address + 1);
 
-                *(DataType*)(scope + register * 5) = *(DataType*)scope;
-                *(int*)(scope + register * 5 + 1) = *(int*)(scope + 1);
+                Address += 2;
+
+                *(DataType*)(scope + destination * 5) = *(DataType*)(scope + source * 5);
+                *(int*)(scope + destination * 5 + 1) = *(int*)(scope + source * 5 + 1);
             }
         }
 
@@ -284,9 +286,6 @@ namespace Speare.Runtimes
                         break;
                     case OpCode.Move:
                         OpMove();
-                        break;
-                    case OpCode.Load:
-                        OpLoad();
                         break;
                     case OpCode.Compare:
                         OpCompare();

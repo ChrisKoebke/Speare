@@ -13,7 +13,6 @@ namespace Speare.Ops
         PopScope,
         Constant,
         Move,
-        Load,
         Compare,
         Call,
         Interop,
