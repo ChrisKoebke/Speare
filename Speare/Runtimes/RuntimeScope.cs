@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Speare.Runtimes
 {
-    public class RuntimeScope : IDisposable
+    public unsafe class RuntimeScope : IDisposable
     {
         public RuntimeScope(Runtime runtime)
         {
@@ -19,11 +19,8 @@ namespace Speare.Runtimes
         public object Result;
         public int ReturnAddress;
 
-        public DataType TempType;
-        public int Temp;
-
-        public byte[] Registers = new byte[4 * 16];
-        public byte[] Vars = new byte[4 * 32];
+        public byte[] Registers = new byte[5 * 16];
+        public byte[] Vars = new byte[5 * 32];
 
         public void Dispose()
         {

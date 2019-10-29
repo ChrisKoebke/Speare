@@ -6,15 +6,16 @@ using System.Threading.Tasks;
 
 namespace Speare.Ops
 {
-    public enum OpCode
+    public enum OpCode : short
     {
         None,
         PushScope,
         PopScope,
         Constant,
-        Store,
+        Move,
         Load,
         Call,
+        Interop,
         Jump,
         Add,
         Subtract,

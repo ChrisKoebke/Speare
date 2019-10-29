@@ -14,20 +14,29 @@ namespace Speare.Testing
 {
     class Program
     {
+        public static void PrintVector(int x, int y, int z)
+        {
+            Console.WriteLine("Vector " + x + "x" + y + "x" + z);
+        }
+
         static void Main(string[] args)
         {
-            var runtime = new Runtime();
-            
-            var builder = new OpBuilder();
-            builder.Constant("This is a test")
-                   .DebugPrint()
-                   .Store(0)
-                   .Constant(1024)
-                   .DebugPrint()
-                   .Load(0)
-                   .DebugPrint();
+            Interop.RegisterMethodsOf<Program>();
 
-            runtime.Load(builder);
+            var builder = new OpBuilder();
+            builder.PushScope()
+                   .Constant(64)
+                   .Move(Register.A)
+                   .Constant(1024)
+                   .Move(Register.B)
+                   .Constant(11)
+                   .Move(Register.C)
+                   .Interop("PrintVector")
+                   .PopScope()
+                   .Interop("PrintVector")
+                   .Jump(0);
+
+            var runtime = Runtime.FromBuilder(builder);
             runtime.Run().MoveNext();
 
             /*Console.WriteLine(code);

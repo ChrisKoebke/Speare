@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Speare.Runtimes;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -11,44 +12,56 @@ namespace Speare.Ops
     {
         public OpBuilder()
         {
-            _opsWriter = new BinaryWriter(_opsStream);
-            _chrhWriter = new BinaryWriter(_chrhStream);
+            _ops = new BinaryWriter(_opsStream);
+            _chrh = new BinaryWriter(_chrhStream);
         }
 
         private MemoryStream _opsStream = new MemoryStream();
-        private BinaryWriter _opsWriter;
+        private BinaryWriter _ops;
 
         private int _chrhAddress = 0;
         private int _chrbOpAddress = 0;
         private MemoryStream _chrhStream = new MemoryStream();
-        private BinaryWriter _chrhWriter;
+        private BinaryWriter _chrh;
 
         private StringBuilder _chrb = new StringBuilder();
         
+        public OpBuilder PushScope()
+        {
+            _ops.Write((short)OpCode.PushScope);
+            return this;
+        }
+
+        public OpBuilder PopScope()
+        {
+            _ops.Write((short)OpCode.PopScope);
+            return this;
+        }
+
         public OpBuilder Constant(int value)
         {
-            _opsWriter.Write((int)OpCode.Constant);
-            _opsWriter.Write((byte)DataType.Int);
-            _opsWriter.Write(value);
+            _ops.Write((short)OpCode.Constant);
+            _ops.Write((byte)DataType.Int);
+            _ops.Write(value);
             return this;
         }
 
         public OpBuilder Constant(float value)
         {
-            _opsWriter.Write((int)OpCode.Constant);
-            _opsWriter.Write((byte)DataType.Float);
-            _opsWriter.Write(value);
+            _ops.Write((short)OpCode.Constant);
+            _ops.Write((byte)DataType.Float);
+            _ops.Write(value);
             return this;
         }
 
         public OpBuilder Constant(string value)
         {
-            _opsWriter.Write((int)OpCode.Constant);
-            _opsWriter.Write((byte)DataType.ChrPointer);
-            _opsWriter.Write(_chrhAddress);
+            _ops.Write((short)OpCode.Constant);
+            _ops.Write((byte)DataType.ChrPointer);
+            _ops.Write(_chrhAddress);
 
-            _chrhWriter.Write(_chrbOpAddress);
-            _chrhWriter.Write(value.Length);
+            _chrh.Write(_chrbOpAddress);
+            _chrh.Write(value.Length);
             _chrb.Append(value);
 
             _chrbOpAddress += value.Length;
@@ -57,23 +70,67 @@ namespace Speare.Ops
             return this;
         }
 
-        public OpBuilder Store(byte registerIndex)
+        public OpBuilder Move(Register register)
         {
-            _opsWriter.Write((int)OpCode.Store);
-            _opsWriter.Write(registerIndex);
+            return Move((byte)register);
+        }
+
+        public OpBuilder Move(byte register)
+        {
+            _ops.Write((short)OpCode.Move);
+            _ops.Write(register);
             return this;
         }
 
-        public OpBuilder Load(byte registerIndex)
+        public OpBuilder Load(Register register)
         {
-            _opsWriter.Write((int)OpCode.Load);
-            _opsWriter.Write(registerIndex);
+            return Load((byte)register);
+        }
+
+        public OpBuilder Load(byte register)
+        {
+            _ops.Write((short)OpCode.Load);
+            _ops.Write(register);
             return this;
         }
 
-        public OpBuilder DebugPrint()
+        public OpBuilder Interop(string methodName)
         {
-            _opsWriter.Write((int)OpCode.DebugPrint);
+            _ops.Write((short)OpCode.Interop);
+            _ops.Write(methodName.GetHashCode());
+
+            return this;
+        }
+
+        public OpBuilder Jump(int address)
+        {
+            _ops.Write((short)OpCode.Jump);
+            _ops.Write(address);
+            return this;
+        }
+
+        public OpBuilder Add(Register registerA, Register registerB)
+        {
+            return Add((byte)registerA, (byte)registerB);
+        }
+
+        public OpBuilder Add(byte registerA, byte registerB)
+        {
+            _ops.Write((short)OpCode.Add);
+            _ops.Write(registerA);
+            _ops.Write(registerB);
+            return this;
+        }
+
+        public OpBuilder DebugPrint(Register register)
+        {
+            return DebugPrint((byte)register);
+        }
+
+        public OpBuilder DebugPrint(byte register)
+        {
+            _ops.Write((short)OpCode.DebugPrint);
+            _ops.Write(register);
             return this;
         }
 

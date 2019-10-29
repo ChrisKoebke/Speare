@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -31,9 +32,22 @@ namespace Speare.Runtimes
             get { return Stack.Peek(); }
         }
 
-        public void Load(OpBuilder ops)
+        public static Runtime FromBuilder(OpBuilder ops)
         {
-            ops.Build(out Ops, out Chrh, out Chrb, out Mth);
+            var runtime = new Runtime();
+            ops.Build(out runtime.Ops, out runtime.Chrh, out runtime.Chrb, out runtime.Mth);
+            return runtime;
+        }
+
+        public unsafe OpCode ReadOp()
+        {
+            fixed (byte* pointer = Ops)
+            {
+                var result = *(OpCode*)(pointer + Address);
+                Address += 2;
+
+                return result;
+            }
         }
 
         public string ReadString(int index)
@@ -50,21 +64,21 @@ namespace Speare.Runtimes
             }
         }
 
-        public object ReadTemp()
+        public object ReadRegister(byte index)
         {
-            switch (Scope.TempType)
+            fixed (byte* pointer = Scope.Registers)
             {
-                case DataType.Int:
-                    return Scope.Temp;
-                case DataType.Float:
-                    fixed (int* pointer = &Scope.Temp)
-                    {
-                        return *(float*)pointer;
-                    }
-                case DataType.ChrPointer:
-                    return ReadString(Scope.Temp);
-                default:
-                    return null;
+                switch (*(DataType*)pointer)
+                {
+                    case DataType.Int:
+                        return *(int*)(pointer + index * 5 + 1);
+                    case DataType.Float:
+                        return *(float*)(pointer + index * 5 + 1);
+                    case DataType.ChrPointer:
+                        return ReadString(*(int*)(pointer + index * 5 + 1));
+                    default:
+                        return null;
+                }
             }
         }
 
@@ -81,11 +95,11 @@ namespace Speare.Runtimes
         public void OpConstant()
         {
             fixed (byte* pointer = Ops)
+            fixed (byte* registersPointer = Scope.Registers)
             {
-                Scope.TempType = *(DataType*)(pointer + Address);
-                Address++;
-                Scope.Temp = *(int*)(pointer + Address);
-                Address += 4;
+                *(DataType*)(registersPointer) = *(DataType*)(pointer + Address);
+                *(int*)(registersPointer + 1) = *(int*)(pointer + Address + 1);
+                Address += 5;
             }
         }
 
@@ -97,8 +111,8 @@ namespace Speare.Runtimes
                 var register = *(pointer + Address);
                 Address++;
 
-                *(DataType*)(registersPointer + register * 5) = Scope.TempType;
-                *(int*)(registersPointer + register * 5 + 1) = Scope.Temp;
+                *(DataType*)(registersPointer + register * 5) = *(DataType*)(registersPointer);
+                *(int*)(registersPointer + register * 5 + 1) = *(int*)(registersPointer + 1);
             }
         }
 
@@ -110,8 +124,8 @@ namespace Speare.Runtimes
                 var register = *(pointer + Address);
                 Address++;
 
-                Scope.TempType = *(DataType*)(registersPointer + register * 5);
-                Scope.Temp = *(int*)(registersPointer + register * 5 + 1);
+                *(DataType*)(registersPointer) = *(DataType*)(registersPointer + register * 5);
+                *(int*)(registersPointer + 1) = *(int*)(registersPointer + register * 5 + 1);
             }
         }
 
@@ -119,7 +133,28 @@ namespace Speare.Runtimes
         {
             fixed (byte* pointer = Ops)
             {
-                Address = *(int*)(pointer + Address);
+                var methodAddress = *(int*)(pointer + Address);
+                Address += 4;
+
+                // TODO: Resolve
+            }
+        }
+
+        public void OpInterop()
+        {
+            fixed (byte* pointer = Ops)
+            {
+                var hash = *(int*)(pointer + Address);
+
+                var info = Interop.Methods[hash];
+                var parameters = Interop.ParameterPool[hash];
+
+                for (byte i = 1; i <= parameters.Length; i++)
+                {
+                    parameters[i - 1] = ReadRegister(i);
+                }
+
+                info.Invoke(null, parameters);
             }
         }
 
@@ -131,19 +166,50 @@ namespace Speare.Runtimes
             }
         }
 
-        public void OpDebugPrint()
+        public void OpAdd()
         {
-            Console.WriteLine(ReadTemp());
+            fixed (byte* pointer = Ops)
+            fixed (byte* registersPointer = Scope.Registers)
+            {
+                var registerA = *(pointer + Address);
+                var registerB = *(pointer + Address + 1);
+
+                Address += 2;
+
+                var typeA = *(DataType*)(registersPointer + registerA * 5);
+                var typeB = *(DataType*)(registersPointer + registerB * 5);
+
+                if (typeA == DataType.Int && typeB == DataType.Int)
+                {
+                    *(DataType*)(registersPointer) = DataType.Int;
+                    *(int*)(registersPointer + 1) = *(int*)(registersPointer + registerA * 5 + 1) + *(int*)(registersPointer + registerB * 5 + 1);
+                }
+                else if (typeA == DataType.Int && typeB == DataType.Float)
+                {
+                    *(DataType*)(registersPointer) = DataType.Float;
+                    *(float*)(registersPointer + 1) = *(int*)(registersPointer + registerA * 5 + 1) + *(float*)(registersPointer + registerB * 5 + 1);
+                }
+                else if (typeA == DataType.Float && typeB == DataType.Int)
+                {
+                    *(DataType*)(registersPointer) = DataType.Float;
+                    *(float*)(registersPointer + 1) = *(float*)(registersPointer + registerA * 5 + 1) + *(int*)(registersPointer + registerB * 5 + 1);
+                }
+                else if (typeA == DataType.Float && typeB == DataType.Float)
+                {
+                    *(DataType*)(registersPointer) = DataType.Float;
+                    *(float*)(registersPointer + 1) = *(float*)(registersPointer + registerA * 5 + 1) + *(float*)(registersPointer + registerB * 5 + 1);
+                }
+            }
         }
 
-        public unsafe OpCode ReadOp()
+        public void OpDebugPrint()
         {
             fixed (byte* pointer = Ops)
             {
-                var result = Unsafe.Read<OpCode>(pointer + Address);
-                Address += 4;
+                var register = *(pointer + Address);
+                Address++;
 
-                return result;
+                Console.WriteLine(ReadRegister(register));
             }
         }
 
@@ -164,7 +230,7 @@ namespace Speare.Runtimes
                     case OpCode.Constant:
                         OpConstant();
                         break;
-                    case OpCode.Store:
+                    case OpCode.Move:
                         OpStore();
                         break;
                     case OpCode.Load:
@@ -173,8 +239,14 @@ namespace Speare.Runtimes
                     case OpCode.Call:
                         OpCall();
                         break;
+                    case OpCode.Interop:
+                        OpInterop();
+                        break;
                     case OpCode.Jump:
                         OpJump();
+                        break;
+                    case OpCode.Add:
+                        OpAdd();
                         break;
                     case OpCode.DebugPrint:
                         OpDebugPrint();
