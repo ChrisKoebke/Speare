@@ -17,6 +17,8 @@ namespace Speare.Ops
         Jump,
         JumpIf,
         Call,
+        Method,
+        Return,
         Interop,
         Add,
         Subtract,
@@ -25,6 +27,7 @@ namespace Speare.Ops
         Modulo,
         Equal,
         Not,
+        Exit,
         DebugPrint
     }
 }

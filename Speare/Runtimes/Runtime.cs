@@ -60,7 +60,7 @@ namespace Speare.Runtimes
             }
         }
 
-        public string ReadFromBuffer(int headerIndex)
+        public string ReadChrb(int headerIndex)
         {
             fixed (byte* headerPointer = Chrh)
             {
@@ -74,7 +74,12 @@ namespace Speare.Runtimes
             }
         }
 
-        public object ReadFromScope(byte index)
+        public object ReadRegister(Register register)
+        {
+            return ReadRegister((byte)register);
+        }
+
+        public object ReadRegister(byte index)
         {
             fixed (byte* scope = Scope)
             {
@@ -87,7 +92,7 @@ namespace Speare.Runtimes
                     case DataType.Float:
                         return *(float*)(scope + index * 5 + 1);
                     case DataType.ChrPointer:
-                        return ReadFromBuffer(*(int*)(scope + index * 5 + 1));
+                        return ReadChrb(*(int*)(scope + index * 5 + 1));
                     default:
                         return null;
                 }
@@ -150,7 +155,7 @@ namespace Speare.Runtimes
                 Address += 2;
 
                 *(DataType*)(scope) = DataType.Bool;
-                *(bool*)(scope + 1) = (int)ReadFromScope(a) < (int)ReadFromScope(b);
+                *(bool*)(scope + 1) = (int)ReadRegister(a) < (int)ReadRegister(b);
 
                 Address += 1;
             }
@@ -183,11 +188,46 @@ namespace Speare.Runtimes
         public void OpCall()
         {
             fixed (byte* pointer = Ops)
+            fixed (byte* mth = Mth)
             {
-                var methodAddress = *(int*)(pointer + Address);
-                Address += 4;
+                var methodIndex = *(short*)(pointer + Address);
+                var parameterCount = *(mth + methodIndex * 3 + 2);
 
-                // TODO: Resolve
+                var previous = Scope;
+                OpPushScope();
+
+                fixed (byte* scope = Scope)
+                fixed (byte* previosScope = previous)
+                {
+                    *(DataType*)(scope + (int)Register.ReturnAddress * 5) = DataType.Int;
+                    *(int*)(scope + (int)Register.ReturnAddress * 5 + 1) = Address;
+
+                    for (int i = 0; i < parameterCount; i++)
+                    {
+                        *(DataType*)(scope + ((int)Register.A + i) * 5) = *(DataType*)(previosScope + ((int)Register.A + i) * 5);
+                        *(int*)(scope + ((int)Register.A + i) * 5 + 1) = *(int*)(previosScope + ((int)Register.A + i) * 5 + 1);
+                    }
+
+                    Address = *(short*)(mth + methodIndex * 3);
+                }
+            }
+        }
+
+        public void OpReturn()
+        {
+            fixed (byte* previous = Scope)
+            {
+                var returnAddress = ReadRegister(Register.ReturnAddress);
+                OpPopScope();
+
+                fixed (byte* scope = Scope)
+                {
+                    // Copy last result
+                    *(DataType*)scope = *(DataType*)previous;
+                    *(int*)(scope + 1) = *(int*)(previous + 1);
+                }
+
+                Address = (int)returnAddress;
             }
         }
 
@@ -199,10 +239,11 @@ namespace Speare.Runtimes
 
                 var info = Interop.Methods[hash];
                 var parameters = Interop.ParameterPool[hash];
+                var offset = (byte)Register.A;
 
-                for (byte i = 1; i <= parameters.Length; i++)
+                for (byte i = 0; i <= parameters.Length; i++)
                 {
-                    parameters[i - 1] = ReadFromScope(i);
+                    parameters[i] = ReadRegister((byte)(i + offset));
                 }
 
                 info.Invoke(null, parameters);
@@ -245,6 +286,11 @@ namespace Speare.Runtimes
             }
         }
 
+        public void OpExit()
+        {
+            Address = Ops.Length;
+        }
+
         public void OpDebugPrint()
         {
             fixed (byte* pointer = Ops)
@@ -252,8 +298,17 @@ namespace Speare.Runtimes
                 var register = *(pointer + Address);
                 Address++;
 
-                Console.WriteLine(ReadFromScope(register));
+                Console.WriteLine(ReadRegister(register));
             }
+        }
+
+        public IEnumerator Run(int methodIndex)
+        {
+            fixed (byte* mth = Mth)
+            {
+                Address = *(short*)(mth + methodIndex * 3);
+            }
+            return Run();
         }
 
         public IEnumerator Run()
@@ -282,6 +337,9 @@ namespace Speare.Runtimes
                     case OpCode.Call:
                         OpCall();
                         break;
+                    case OpCode.Return:
+                        OpReturn();
+                        break;
                     case OpCode.Interop:
                         OpInterop();
                         break;
@@ -293,6 +351,22 @@ namespace Speare.Runtimes
                         break;
                     case OpCode.Add:
                         OpAdd();
+                        break;
+                    case OpCode.Subtract:
+                        break;
+                    case OpCode.Divide:
+                        break;
+                    case OpCode.Multiply:
+                        break;
+                    case OpCode.Modulo:
+                        break;
+                    case OpCode.Equal:
+                        break;
+                    case OpCode.Not:
+                        break;
+                    case OpCode.Method:
+                    case OpCode.Exit:
+                        OpExit();
                         break;
                     case OpCode.DebugPrint:
                         OpDebugPrint();

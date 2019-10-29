@@ -14,9 +14,11 @@ namespace Speare.Ops
         private ArrayBuilder _ops = new ArrayBuilder();
         private ArrayBuilder _chrh = new ArrayBuilder();
         private ArrayBuilder _chrb = new ArrayBuilder();
+        private ArrayBuilder _mth = new ArrayBuilder();
         
         private int _chrhAddress = 0;
         private int _chrbOpAddress = 0;
+        private int _methodCount = 0;
 
         private Dictionary<string, int> _labels = new Dictionary<string, int>();
 
@@ -73,6 +75,16 @@ namespace Speare.Ops
             
             _chrbOpAddress += value.Length;
             _chrhAddress += 1;
+
+            return this;
+        }
+
+        public OpBuilder Method(int parameterCount = 0)
+        {
+            _ops.Write((short)OpCode.Method);
+
+            _mth.Write((short)_ops.Position);
+            _mth.Write((byte)parameterCount);
 
             return this;
         }
@@ -140,6 +152,26 @@ namespace Speare.Ops
             return this;
         }
 
+        public OpBuilder Call(int methodIndex)
+        {
+            _ops.Write((short)OpCode.Call);
+            _ops.Write((short)methodIndex);
+
+            return this;
+        }
+
+        public OpBuilder Return()
+        {
+            _ops.Write((short)OpCode.Return);
+            return this;
+        }
+
+        public OpBuilder Exit()
+        {
+            _ops.Write((short)OpCode.Exit);
+            return this;
+        }
+
         public OpBuilder DebugPrint(Register reg)
         {
             return DebugPrint((byte)reg);
@@ -157,7 +189,7 @@ namespace Speare.Ops
             ops = _ops.Data;
             chrh = _chrh.Data;
             chrb = _chrb.Data;
-            mth = new byte[0];
+            mth = _mth.Data;
         }
     }
 }

@@ -9,7 +9,8 @@ namespace Speare.Runtimes
     public enum Register
     {
         LastResult = 0,
-        A = 1,
+        ReturnAddress = 1,
+        A = 2,
         B,
         C,
         D,

@@ -97,7 +97,7 @@ namespace Speare.Ops
                 // TODO: optimize
                 for (int i = 0; i < value.Length; i++)
                 {
-                    *(destination + i) = *(byte*)(source + i);
+                    *(destination + Position + i) = *(byte*)(source + i);
                 }
 
                 Position += value.Length;
