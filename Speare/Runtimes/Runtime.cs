@@ -17,19 +17,29 @@ namespace Speare.Runtimes
             OpPushScope();
         }
 
-        public Stack<RuntimeScope> Stack = new Stack<RuntimeScope>();
+        public static IRuntime Implementation;
+
+        public Stack<byte[]> Stack = new Stack<byte[]>();
+        public Stack<byte[]> ScopePool = new Stack<byte[]>();
+
+        public Dictionary<string, object> Globals = new Dictionary<string, object>();
 
         public byte[] Ops;
         public byte[] Chrh;
-        public char[] Chrb;
+        public byte[] Chrb;
         public byte[] Mth;
 
         public int Address = 0;
         public IEnumerator Coroutine;
 
-        public RuntimeScope Scope
+        public byte[] Scope
         {
             get { return Stack.Peek(); }
+        }
+
+        public int Size
+        {
+            get { return Ops.Length + Chrh.Length + Chrb.Length + Mth.Length; }
         }
 
         public static Runtime FromBuilder(OpBuilder ops)
@@ -57,25 +67,25 @@ namespace Speare.Runtimes
                 int startIndex = *(int*)(headerPointer + index * 8);
                 int length = *(int*)(headerPointer + index * 8 + 4);
 
-                fixed (char* buffer = Chrb)
+                fixed (byte* buffer = Chrb)
                 {
-                    return new string(buffer, startIndex, length);
+                    return new string((sbyte*)buffer, startIndex, length, Encoding.Default);
                 }
             }
         }
 
-        public object ReadRegister(byte index)
+        public object ReadFromScope(byte index)
         {
-            fixed (byte* pointer = Scope.Registers)
+            fixed (byte* scope = Scope)
             {
-                switch (*(DataType*)pointer)
+                switch (*(DataType*)(scope + index * 5))
                 {
                     case DataType.Int:
-                        return *(int*)(pointer + index * 5 + 1);
+                        return *(int*)(scope + index * 5 + 1);
                     case DataType.Float:
-                        return *(float*)(pointer + index * 5 + 1);
+                        return *(float*)(scope + index * 5 + 1);
                     case DataType.ChrPointer:
-                        return ReadString(*(int*)(pointer + index * 5 + 1));
+                        return ReadString(*(int*)(scope + index * 5 + 1));
                     default:
                         return null;
                 }
@@ -84,48 +94,74 @@ namespace Speare.Runtimes
 
         public void OpPushScope()
         {
-            Stack.Push(new RuntimeScope(this));
+            if (ScopePool.Count > 0)
+            {
+                Stack.Push(ScopePool.Pop());
+                return;
+            }
+
+            Stack.Push(new byte[32 * 5]);
         }
 
         public void OpPopScope()
         {
-            Stack.Pop();
+            ScopePool.Push(Stack.Pop());
         }
 
         public void OpConstant()
         {
             fixed (byte* pointer = Ops)
-            fixed (byte* registersPointer = Scope.Registers)
+            fixed (byte* scope = Scope)
             {
-                *(DataType*)(registersPointer) = *(DataType*)(pointer + Address);
-                *(int*)(registersPointer + 1) = *(int*)(pointer + Address + 1);
-                Address += 5;
+                var register = *(pointer + Address);
+
+                *(DataType*)(scope + register * 5) = *(DataType*)(pointer + Address + 1);
+                *(int*)(scope + register * 5 + 1) = *(int*)(pointer + Address + 2);
+
+                Address += 6;
             }
         }
 
-        public void OpStore()
+        public void OpMove()
         {
             fixed (byte* pointer = Ops)
-            fixed (byte* registersPointer = Scope.Registers)
+            fixed (byte* scope = Scope)
             {
                 var register = *(pointer + Address);
                 Address++;
 
-                *(DataType*)(registersPointer + register * 5) = *(DataType*)(registersPointer);
-                *(int*)(registersPointer + register * 5 + 1) = *(int*)(registersPointer + 1);
+                *(DataType*)(scope + register * 5) = *(DataType*)scope;
+                *(int*)(scope + register * 5 + 1) = *(int*)(scope + 1);
             }
         }
 
         public void OpLoad()
         {
             fixed (byte* pointer = Ops)
-            fixed (byte* registersPointer = Scope.Registers)
+            fixed (byte* scope = Scope)
             {
                 var register = *(pointer + Address);
                 Address++;
 
-                *(DataType*)(registersPointer) = *(DataType*)(registersPointer + register * 5);
-                *(int*)(registersPointer + 1) = *(int*)(registersPointer + register * 5 + 1);
+                *(DataType*)(scope) = *(DataType*)(scope + register * 5);
+                *(int*)(scope + 1) = *(int*)(scope + register * 5 + 1);
+            }
+        }
+
+        public void OpCompare()
+        {
+            fixed (byte* pointer = Ops)
+            fixed (byte* scope = Scope)
+            {
+                var a = *(pointer + Address);
+                var b = *(pointer + Address + 1);
+
+                Address += 2;
+
+                *(DataType*)(scope) = DataType.Int;
+                *(int*)(scope + 1) = (int)ReadFromScope(a) < (int)ReadFromScope(b) ? 1 : 0;
+
+                Address += 1;
             }
         }
 
@@ -151,7 +187,7 @@ namespace Speare.Runtimes
 
                 for (byte i = 1; i <= parameters.Length; i++)
                 {
-                    parameters[i - 1] = ReadRegister(i);
+                    parameters[i - 1] = ReadFromScope(i);
                 }
 
                 info.Invoke(null, parameters);
@@ -166,38 +202,54 @@ namespace Speare.Runtimes
             }
         }
 
+        public void OpJumpIf()
+        {
+            fixed (byte* pointer = Ops)
+            fixed (byte* scope = Scope)
+            {
+                // Last result is false
+                if (*(int*)(scope + 1) == 0)
+                {
+                    Address += 4;
+                    return;
+                }
+
+                Address = *(int*)(pointer + Address);
+            }
+        }
+
         public void OpAdd()
         {
             fixed (byte* pointer = Ops)
-            fixed (byte* registersPointer = Scope.Registers)
+            fixed (byte* scope = Scope)
             {
                 var registerA = *(pointer + Address);
                 var registerB = *(pointer + Address + 1);
 
                 Address += 2;
 
-                var typeA = *(DataType*)(registersPointer + registerA * 5);
-                var typeB = *(DataType*)(registersPointer + registerB * 5);
+                var typeA = *(DataType*)(scope + registerA * 5);
+                var typeB = *(DataType*)(scope + registerB * 5);
 
                 if (typeA == DataType.Int && typeB == DataType.Int)
                 {
-                    *(DataType*)(registersPointer) = DataType.Int;
-                    *(int*)(registersPointer + 1) = *(int*)(registersPointer + registerA * 5 + 1) + *(int*)(registersPointer + registerB * 5 + 1);
+                    *(DataType*)(scope) = DataType.Int;
+                    *(int*)(scope + 1) = *(int*)(scope + registerA * 5 + 1) + *(int*)(scope + registerB * 5 + 1);
                 }
                 else if (typeA == DataType.Int && typeB == DataType.Float)
                 {
-                    *(DataType*)(registersPointer) = DataType.Float;
-                    *(float*)(registersPointer + 1) = *(int*)(registersPointer + registerA * 5 + 1) + *(float*)(registersPointer + registerB * 5 + 1);
+                    *(DataType*)(scope) = DataType.Float;
+                    *(float*)(scope + 1) = *(int*)(scope + registerA * 5 + 1) + *(float*)(scope + registerB * 5 + 1);
                 }
                 else if (typeA == DataType.Float && typeB == DataType.Int)
                 {
-                    *(DataType*)(registersPointer) = DataType.Float;
-                    *(float*)(registersPointer + 1) = *(float*)(registersPointer + registerA * 5 + 1) + *(int*)(registersPointer + registerB * 5 + 1);
+                    *(DataType*)(scope) = DataType.Float;
+                    *(float*)(scope + 1) = *(float*)(scope + registerA * 5 + 1) + *(int*)(scope + registerB * 5 + 1);
                 }
                 else if (typeA == DataType.Float && typeB == DataType.Float)
                 {
-                    *(DataType*)(registersPointer) = DataType.Float;
-                    *(float*)(registersPointer + 1) = *(float*)(registersPointer + registerA * 5 + 1) + *(float*)(registersPointer + registerB * 5 + 1);
+                    *(DataType*)(scope) = DataType.Float;
+                    *(float*)(scope + 1) = *(float*)(scope + registerA * 5 + 1) + *(float*)(scope + registerB * 5 + 1);
                 }
             }
         }
@@ -209,7 +261,7 @@ namespace Speare.Runtimes
                 var register = *(pointer + Address);
                 Address++;
 
-                Console.WriteLine(ReadRegister(register));
+                Console.WriteLine(ReadFromScope(register));
             }
         }
 
@@ -231,10 +283,13 @@ namespace Speare.Runtimes
                         OpConstant();
                         break;
                     case OpCode.Move:
-                        OpStore();
+                        OpMove();
                         break;
                     case OpCode.Load:
                         OpLoad();
+                        break;
+                    case OpCode.Compare:
+                        OpCompare();
                         break;
                     case OpCode.Call:
                         OpCall();
@@ -244,6 +299,9 @@ namespace Speare.Runtimes
                         break;
                     case OpCode.Jump:
                         OpJump();
+                        break;
+                    case OpCode.JumpIf:
+                        OpJumpIf();
                         break;
                     case OpCode.Add:
                         OpAdd();

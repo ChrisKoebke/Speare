@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Speare
 {
-    public class SpeareHost
+    public class Speare
     {
     }
 }

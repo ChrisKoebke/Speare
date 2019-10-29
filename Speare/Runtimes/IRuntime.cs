@@ -9,15 +9,13 @@ namespace Speare.Runtimes
 {
     public interface IRuntime
     {
-        IEnumerator Run(IEnumerator coroutine);
+        IEnumerator Say(string message);
+        IEnumerator SayWithOptions(string message, string[] options);
+        IEnumerator ChangeSpeaker(string speakerName);
+        IEnumerator ChangeFace(string faceName);
+        IEnumerator RunGameEvent(string gameEvent);
 
-        IEnumerator Say(char[] buffer, int messageIndex, int messageLength);
-        IEnumerator SayWithOptions(char[] buffer, int messageIndex, int messageLength, int[] optionIndices, int[] optionLengths);
-        IEnumerator ChangeSpeaker(char[] buffer, int speakerIndex, int speakerLength);
-        IEnumerator ChangeFace(char[] buffer, int faceIndex, int faceLength);
-        IEnumerator RunGameEvent(char[] buffer, int eventIndex, int eventLength);
-
-        object WaitFor(Func<bool> function);
+        object WaitFor(Func<float, bool> function);
         object WaitForSeconds(float seconds);
         object WaitForEndOfFrame();
         object WaitForFixedUpdate();

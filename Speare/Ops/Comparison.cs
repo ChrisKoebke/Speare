@@ -6,12 +6,14 @@ using System.Threading.Tasks;
 
 namespace Speare.Ops
 {
-    public enum DataType : byte
+    public enum Comparison : byte
     {
         None,
-        Int,
-        Float,
-        Bool,
-        ChrPointer
+        Equal,
+        NotEqual,
+        LargerThan,
+        SmallerThan,
+        LargerOrEqualThan,
+        SmallerOrEqualThan
     }
 }

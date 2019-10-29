@@ -14,7 +14,7 @@ namespace Speare.Testing
 {
     class Program
     {
-        public static void PrintVector(int x, int y, int z)
+        public static void PrintVector(string x, int y, int z)
         {
             Console.WriteLine("Vector " + x + "x" + y + "x" + z);
         }
@@ -24,17 +24,16 @@ namespace Speare.Testing
             Interop.RegisterMethodsOf<Program>();
 
             var builder = new OpBuilder();
-            builder.PushScope()
-                   .Constant(64)
-                   .Move(Register.A)
-                   .Constant(1024)
-                   .Move(Register.B)
-                   .Constant(11)
-                   .Move(Register.C)
-                   .Interop("PrintVector")
-                   .PopScope()
-                   .Interop("PrintVector")
-                   .Jump(0);
+            builder.Constant(Var.A, 0)
+                   .Constant(Var.B, 5)
+                   .Constant(Var.C, 1)
+                   .Add(Var.A, Var.C)
+                   .Move(Var.A)
+                   .DebugPrint(Var.A)
+                   .Compare(Var.A, Var.B, Comparison.SmallerThan)
+                   .JumpIf(8)
+                   .Constant(Var.D, "We made it through the loop!")
+                   .DebugPrint(Var.D);
 
             var runtime = Runtime.FromBuilder(builder);
             runtime.Run().MoveNext();

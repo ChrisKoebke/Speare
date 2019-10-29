@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Speare.Runtimes
 {
-    public enum Register
+    public enum Var
     {
         Temp = 0,
         A = 1,

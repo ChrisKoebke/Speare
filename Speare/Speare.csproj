@@ -50,12 +50,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Compilation\CompileHelper.cs" />
+    <Compile Include="Ops\Comparison.cs" />
     <Compile Include="Ops\DataType.cs" />
     <Compile Include="Ops\OpBuilder.cs" />
     <Compile Include="Ops\OpCode.cs" />
     <Compile Include="Runtimes\Interop.cs" />
-    <Compile Include="Runtimes\MethodTable.cs" />
-    <Compile Include="Runtimes\Register.cs" />
+    <Compile Include="Runtimes\Var.cs" />
     <Compile Include="SpeareCompiler.cs" />
     <Compile Include="Parsing\Utils.cs" />
     <Compile Include="Runtimes\IRuntime.cs" />
@@ -66,8 +66,7 @@
     <Compile Include="Parsing\Chars.cs" />
     <Compile Include="Parsing\TokenType.cs" />
     <Compile Include="Runtimes\Runtime.cs" />
-    <Compile Include="Runtimes\RuntimeScope.cs" />
-    <Compile Include="SpeareHost.cs" />
+    <Compile Include="Speare.cs" />
     <Compile Include="SpeareScript.cs" />
   </ItemGroup>
   <ItemGroup>
