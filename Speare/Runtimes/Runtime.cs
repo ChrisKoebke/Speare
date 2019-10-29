@@ -50,19 +50,19 @@ namespace Speare.Runtimes
             }
         }
 
-        public object ReadConstant()
+        public object ReadTemp()
         {
-            switch (Scope.ValueType)
+            switch (Scope.TempType)
             {
                 case DataType.Int:
-                    return Scope.Value;
+                    return Scope.Temp;
                 case DataType.Float:
-                    fixed (int* pointer = &Scope.Value)
+                    fixed (int* pointer = &Scope.Temp)
                     {
                         return *(float*)pointer;
                     }
                 case DataType.ChrPointer:
-                    return ReadString(Scope.Value);
+                    return ReadString(Scope.Temp);
                 default:
                     return null;
             }
@@ -82,9 +82,9 @@ namespace Speare.Runtimes
         {
             fixed (byte* pointer = Ops)
             {
-                Scope.ValueType = *(DataType*)(pointer + Address);
+                Scope.TempType = *(DataType*)(pointer + Address);
                 Address++;
-                Scope.Value = *(int*)(pointer + Address);
+                Scope.Temp = *(int*)(pointer + Address);
                 Address += 4;
             }
         }
@@ -97,8 +97,8 @@ namespace Speare.Runtimes
                 var register = *(pointer + Address);
                 Address++;
 
-                *(DataType*)(registersPointer + register * 5) = Scope.ValueType;
-                *(int*)(registersPointer + register * 5 + 1) = Scope.Value;
+                *(DataType*)(registersPointer + register * 5) = Scope.TempType;
+                *(int*)(registersPointer + register * 5 + 1) = Scope.Temp;
             }
         }
 
@@ -110,8 +110,8 @@ namespace Speare.Runtimes
                 var register = *(pointer + Address);
                 Address++;
 
-                Scope.ValueType = *(DataType*)(registersPointer + register * 5);
-                Scope.Value = *(int*)(registersPointer + register * 5 + 1);
+                Scope.TempType = *(DataType*)(registersPointer + register * 5);
+                Scope.Temp = *(int*)(registersPointer + register * 5 + 1);
             }
         }
 
@@ -133,15 +133,14 @@ namespace Speare.Runtimes
 
         public void OpDebugPrint()
         {
-            Console.WriteLine(ReadConstant());
+            Console.WriteLine(ReadTemp());
         }
 
-        public unsafe OpCode Read()
+        public unsafe OpCode ReadOp()
         {
             fixed (byte* pointer = Ops)
             {
                 var result = Unsafe.Read<OpCode>(pointer + Address);
-                // Advance address by size of op code
                 Address += 4;
 
                 return result;
@@ -152,7 +151,7 @@ namespace Speare.Runtimes
         { 
             while (Address < Ops.Length)
             {
-                var op = Read();
+                var op = ReadOp();
 
                 switch (op)
                 {
@@ -188,12 +187,6 @@ namespace Speare.Runtimes
                     Coroutine = null;
                 }
             }
-        }
-
-        public void GetMethodBoundaries(int methodAddress, out int startAddress, out int endAddress)
-        {
-            startAddress = 0;
-            endAddress = 0;
         }
     }
 }

@@ -21,6 +21,13 @@ namespace Speare.Ops
         Divide,
         Multiply,
         Modulo,
+        Equals,
+        LargerThan,
+        SmallerThan,
+        LargerOrEqualThan,
+        SmallerOrEqualThan,
+        NotEqual,
+        Not,
         DebugPrint
     }
 }

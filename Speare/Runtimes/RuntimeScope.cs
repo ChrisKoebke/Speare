@@ -17,9 +17,10 @@ namespace Speare.Runtimes
 
         public Runtime Runtime;
         public object Result;
+        public int ReturnAddress;
 
-        public DataType ValueType;
-        public int Value;
+        public DataType TempType;
+        public int Temp;
 
         public byte[] Registers = new byte[4 * 16];
         public byte[] Vars = new byte[4 * 32];

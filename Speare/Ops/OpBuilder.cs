@@ -19,7 +19,7 @@ namespace Speare.Ops
         private BinaryWriter _opsWriter;
 
         private int _chrhAddress = 0;
-        private int _chrbIndex = 0;
+        private int _chrbOpAddress = 0;
         private MemoryStream _chrhStream = new MemoryStream();
         private BinaryWriter _chrhWriter;
 
@@ -47,11 +47,11 @@ namespace Speare.Ops
             _opsWriter.Write((byte)DataType.ChrPointer);
             _opsWriter.Write(_chrhAddress);
 
-            _chrhWriter.Write(_chrbIndex);
+            _chrhWriter.Write(_chrbOpAddress);
             _chrhWriter.Write(value.Length);
             _chrb.Append(value);
 
-            _chrbIndex += value.Length;
+            _chrbOpAddress += value.Length;
             _chrhAddress += 1;
 
             return this;
