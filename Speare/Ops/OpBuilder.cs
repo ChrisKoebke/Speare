@@ -30,6 +30,8 @@ namespace Speare.Ops
         private MemoryStream _chrbStream = new MemoryStream();
         private BinaryWriter _chrb;
 
+        private Dictionary<string, int> _labels = new Dictionary<string, int>();
+
         public OpBuilder PushScope()
         {
             _ops.Write((short)OpCode.PushScope);
@@ -84,6 +86,12 @@ namespace Speare.Ops
             return this;
         }
 
+        public OpBuilder Label(string name)
+        {
+            _labels[name] = (int)_opsStream.Position;
+            return this;
+        }
+
         public OpBuilder Move(Var var)
         {
             return Move((byte)var);
@@ -125,11 +133,21 @@ namespace Speare.Ops
             return this;
         }
 
+        public OpBuilder Jump(string label)
+        {
+            return Jump(_labels[label]);
+        }
+
         public OpBuilder Jump(int address)
         {
             _ops.Write((short)OpCode.Jump);
             _ops.Write(address);
             return this;
+        }
+
+        public OpBuilder JumpIf(string label)
+        {
+            return JumpIf(_labels[label]);
         }
 
         public OpBuilder JumpIf(int address)
