@@ -32,6 +32,15 @@ namespace Speare.Ops
             return this;
         }
 
+        public OpBuilder Constant(Register reg, bool value)
+        {
+            _ops.Write((short)OpCode.Constant);
+            _ops.Write((byte)reg);
+            _ops.Write((byte)DataType.Bool);
+            _ops.Write(value);
+            return this;
+        }
+
         public OpBuilder Constant(Register reg, int value)
         {
             _ops.Write((short)OpCode.Constant);
