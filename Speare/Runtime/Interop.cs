@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Speare.Utility;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -16,8 +17,8 @@ namespace Speare.Runtime
         {
             foreach (var method in typeof(T).GetMethods())
             {
-                Methods[method.Name.GetHashCode()] = method;
-                ParameterPool[method.Name.GetHashCode()] = new object[method.GetParameters().Length];
+                Methods[method.Name.GetReliableHashCode()] = method;
+                ParameterPool[method.Name.GetReliableHashCode()] = new object[method.GetParameters().Length];
             }
         }
     }
