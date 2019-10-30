@@ -28,18 +28,19 @@ namespace Speare.Runtime
         private Stack<byte[]> _scopePool = new Stack<byte[]>();
         private Dictionary<int, object> _globals = new Dictionary<int, object>();
 
-        private TimeSpan _frameBudget;
         private IEnumerator _coroutine;
 
         private int _opAddress;
+        private int _maxOpAddress;
+
         private int _mthAddress;
         private int _chrhAddress;
         private int _chrbAddress;
 
         private int _address;
-        private int _maxExecutableAddress;
-
         public int Address { get => _address; set => _address = value; }
+
+        private TimeSpan _frameBudget;
         public TimeSpan FrameBudget { get => _frameBudget; set => _frameBudget = value; }
 
         public void Load(byte[] byteCode)
@@ -55,7 +56,7 @@ namespace Speare.Runtime
 
                 // Subtract header size from methods header to get
                 // the maximum _address for the Run() method
-                _maxExecutableAddress = _mthAddress - _opAddress;
+                _maxOpAddress = _mthAddress - _opAddress;
             }
         }
 
@@ -405,7 +406,7 @@ namespace Speare.Runtime
         {
             var timer = Stopwatch.StartNew();
 
-            while (Address < _maxExecutableAddress)
+            while (Address < _maxOpAddress)
             {
                 var op = Next();
 
@@ -464,7 +465,7 @@ namespace Speare.Runtime
                     yield return _coroutine;
                     _coroutine = null;
                 }
-                else if (timer.Elapsed >= FrameBudget && CoroutineRuntime != null)
+                else if (timer.Elapsed >= _frameBudget && CoroutineRuntime != null)
                 {
                     yield return CoroutineRuntime.WaitForEndOfFrame();
                     timer.Restart();
