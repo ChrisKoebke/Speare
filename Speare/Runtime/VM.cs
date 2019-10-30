@@ -37,7 +37,7 @@ namespace Speare.Runtime
         private int _chrbAddress;
 
         private int _address;
-        private int _maxAddress;
+        private int _maxExecutableAddress;
 
         public int Address { get => _address; set => _address = value; }
         public TimeSpan FrameBudget { get => _frameBudget; set => _frameBudget = value; }
@@ -55,7 +55,7 @@ namespace Speare.Runtime
 
                 // Subtract header size from methods header to get
                 // the maximum _address for the Run() method
-                _maxAddress = _mthAddress - _opAddress;
+                _maxExecutableAddress = _mthAddress - _opAddress;
             }
         }
 
@@ -405,7 +405,7 @@ namespace Speare.Runtime
         {
             var timer = Stopwatch.StartNew();
 
-            while (Address < _maxAddress)
+            while (Address < _maxExecutableAddress)
             {
                 var op = Next();
 
