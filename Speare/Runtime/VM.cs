@@ -406,7 +406,7 @@ namespace Speare.Runtime
         {
             var timer = Stopwatch.StartNew();
 
-            while (Address < _maxOpAddress)
+            while (Address > 0 && Address < _maxOpAddress)
             {
                 var op = Next();
 
