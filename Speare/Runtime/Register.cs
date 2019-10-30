@@ -33,6 +33,14 @@ namespace Speare.Runtime
         Param4,
         Param5,
         Param6,
-        Param7
+        Param7,
+        Local0,
+        Local1,
+        Local2,
+        Local3,
+        Local4,
+        Local5,
+        Local6,
+        Local7
     }
 }

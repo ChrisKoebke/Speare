@@ -1,4 +1,5 @@
 ﻿using Speare.Compilation;
+using Speare.Utility;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -23,10 +24,10 @@ namespace Speare.Runtime
 
         public TimeSpan FrameBudget;
 
-        public Stack<byte[]> Stack = new Stack<byte[]>();
-        public Stack<byte[]> ScopePool = new Stack<byte[]>();
+        private Stack<byte[]> _stack = new Stack<byte[]>();
+        private Stack<byte[]> _scopePool = new Stack<byte[]>();
 
-        public Dictionary<string, object> Globals = new Dictionary<string, object>();
+        private Dictionary<int, object> _globals = new Dictionary<int, object>();
 
         public byte[] Ops;
         public byte[] Chrh;
@@ -36,21 +37,41 @@ namespace Speare.Runtime
         public int Address = 0;
         public IEnumerator Coroutine;
 
+        public object this[int hash]
+        {
+            get
+            {
+                object result;
+                _globals.TryGetValue(hash, out result);
+                return result;
+            }
+            set
+            {
+                _globals[hash] = value;
+            }
+        }
+
+        public object this[string name]
+        {
+            get { return this[name.GetHashCode32()]; }
+            set { this[name.GetHashCode32()] = value; }
+        }
+
         public byte[] Scope
         {
-            get { return Stack.Peek(); }
+            get { return _stack.Peek(); }
         }
 
         public int MemoryAllocated
         {
-            get { return ScopePool.Count * 130 + Stack.Count * 130 + Ops.Length + Chrh.Length + Chrb.Length + Mth.Length; }
+            get { return _scopePool.Count * 170 + _stack.Count * 170 + Ops.Length + Chrh.Length + Chrb.Length + Mth.Length; }
         }
 
         public void Allocate(int poolSize = 128)
         {
             for (int i = 0; i < poolSize; i++)
             {
-                ScopePool.Push(new byte[26 * 5]);
+                _scopePool.Push(new byte[34 * 5]);
             }
         }
 
@@ -65,7 +86,7 @@ namespace Speare.Runtime
             }
         }
 
-        public string ReadChrb(int stringIndex)
+        public string ReadChrbString(int stringIndex)
         {
             fixed (byte* chrh = Chrh)
             {
@@ -91,8 +112,10 @@ namespace Speare.Runtime
                         return *P.IntValue(scope, register);
                     case DataType.Float:
                         return *P.FloatValue(scope, register);
-                    case DataType.ChrPointer:
-                        return ReadChrb(*P.IntValue(scope, register));
+                    case DataType.String:
+                        return ReadChrbString(*P.IntValue(scope, register));
+                    case DataType.StringRef:
+                        return _globals[*P.IntValue(scope, register)];
                     default:
                         return null;
                 }
@@ -101,18 +124,18 @@ namespace Speare.Runtime
 
         public void OpPushScope()
         {
-            if (ScopePool.Count > 0)
+            if (_scopePool.Count > 0)
             {
-                Stack.Push(ScopePool.Pop());
+                _stack.Push(_scopePool.Pop());
                 return;
             }
 
-            Stack.Push(new byte[26 * 5]);
+            _stack.Push(new byte[34 * 5]);
         }
 
         public void OpPopScope()
         {
-            ScopePool.Push(Stack.Pop());
+            _scopePool.Push(_stack.Pop());
         }
 
         public void OpConstant()
@@ -129,13 +152,67 @@ namespace Speare.Runtime
             }
         }
 
-        public void OpMove()
+        public void OpGlobalRead()
         {
             fixed (byte* ops = Ops)
             fixed (byte* scope = Scope)
             {
-                var source = *(Register*)(ops + Address);
-                var destination = *(Register*)(ops + Address + 1);
+                var register = *(Register*)(ops + Address);
+                var hash = *(int*)(ops + Address + 1);
+                Address += 5;
+
+                var value = this[hash];
+                if (value == null)
+                {
+                    *P.DataType(scope, register) = DataType.Null;
+                    return;
+                }
+
+                var type = value.GetType();
+                if (type == typeof(int))
+                {
+                    *P.DataType(scope, register) = DataType.Int;
+                    *P.IntValue(scope, register) = (int)value;
+                }
+                if (type == typeof(float))
+                {
+                    *P.DataType(scope, register) = DataType.Float;
+                    *P.FloatValue(scope, register) = (float)value;
+                }
+                if (type == typeof(bool))
+                {
+                    *P.DataType(scope, register) = DataType.Bool;
+                    *P.BoolValue(scope, register) = (bool)value;
+                }
+                if (type == typeof(string))
+                {
+                    *P.DataType(scope, register) = DataType.StringRef;
+                    *P.IntValue(scope, register) = hash;
+                }
+            }
+        }
+
+        public void OpGlobalWrite()
+        {
+            fixed (byte* ops = Ops)
+            fixed (byte* scope = Scope)
+            {
+                var hash = *(int*)(ops + Address);
+                var register = *(Register*)(ops + Address + 4);
+
+                Address += 5;
+
+                this[hash] = ReadRegisterBoxed(register);
+            }
+        }
+
+        public void OpSet()
+        {
+            fixed (byte* ops = Ops)
+            fixed (byte* scope = Scope)
+            {
+                var destination = *(Register*)(ops + Address);
+                var source = *(Register*)(ops + Address + 1);
 
                 Address += 2;
 
@@ -340,8 +417,14 @@ namespace Speare.Runtime
                     case Op.Constant:
                         OpConstant();
                         break;
-                    case Op.Move:
-                        OpMove();
+                    case Op.GlobalRead:
+                        OpGlobalRead();
+                        break;
+                    case Op.GlobalWrite:
+                        OpGlobalWrite();
+                        break;
+                    case Op.Set:
+                        OpSet();
                         break;
                     case Op.Compare:
                         OpCompare();

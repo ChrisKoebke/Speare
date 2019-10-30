@@ -9,7 +9,7 @@ namespace Speare.Utility
 {
     public static class StringExtensions
     {
-        public static unsafe int GetReliableHashCode(this string value)
+        public static unsafe int GetHashCode32(this string value)
         {
             fixed (char* src = value)
             {

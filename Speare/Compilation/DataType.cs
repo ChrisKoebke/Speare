@@ -9,9 +9,11 @@ namespace Speare.Compilation
     public enum DataType : byte
     {
         Null,
+
         Bool,
         Int,
         Float,
-        ChrPointer
+        String,
+        StringRef
     }
 }

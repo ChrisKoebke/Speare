@@ -39,6 +39,16 @@ namespace Speare.Runtime
             return (int*)(scope + ((int)register + index) * 5 + 1); // Registers are [byte:type] [int:data]
         }
 
+        public static short* ShortValue(byte* scope, Register register)
+        {
+            return (short*)(scope + (int)register * 5 + 1); // Registers are [byte:type] [int:data]
+        }
+
+        public static short* ShortValue(byte* scope, Register register, int index)
+        {
+            return (short*)(scope + ((int)register + index) * 5 + 1); // Registers are [byte:type] [int:data]
+        }
+
         public static float* FloatValue(byte* scope, Register register)
         {
             return (float*)(scope + (int)register * 5 + 1); // Registers are [byte:type] [int:data]

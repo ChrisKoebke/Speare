@@ -65,7 +65,7 @@ namespace Speare.Compilation
         {
             _ops.Write((short)Op.Constant);
             _ops.Write((byte)reg);
-            _ops.Write((byte)DataType.ChrPointer);
+            _ops.Write((byte)DataType.String);
             _ops.Write(_chrhAddress);
 
             _chrh.Write(_chrbOpAddress);
@@ -75,6 +75,34 @@ namespace Speare.Compilation
             
             _chrbOpAddress += value.Length;
             _chrhAddress += 1;
+
+            return this;
+        }
+
+        public OpBuilder GlobalRead(Register reg, string name)
+        {
+            return GlobalRead(reg, name.GetHashCode32());
+        }
+
+        public OpBuilder GlobalRead(Register reg, int hash)
+        {
+            _ops.Write((short)Op.GlobalRead);
+            _ops.Write((byte)reg);
+            _ops.Write(hash);
+
+            return this;
+        }
+
+        public OpBuilder GlobalWrite(string name, Register reg)
+        {
+            return GlobalWrite(name.GetHashCode32(), reg);
+        }
+
+        public OpBuilder GlobalWrite(int hash, Register reg)
+        {
+            _ops.Write((short)Op.GlobalWrite);
+            _ops.Write(hash);
+            _ops.Write((byte)reg);
 
             return this;
         }
@@ -95,11 +123,11 @@ namespace Speare.Compilation
             return this;
         }
         
-        public OpBuilder Move(Register source, Register destination)
+        public OpBuilder Set(Register destination, Register source)
         {
-            _ops.Write((short)Op.Move);
-            _ops.Write((byte)source);
+            _ops.Write((short)Op.Set);
             _ops.Write((byte)destination);
+            _ops.Write((byte)source);
             return this;
         }
         
@@ -115,7 +143,7 @@ namespace Speare.Compilation
         public OpBuilder Interop(string methodName)
         {
             _ops.Write((short)Op.Interop);
-            _ops.Write(methodName.GetReliableHashCode());
+            _ops.Write(methodName.GetHashCode32());
 
             return this;
         }

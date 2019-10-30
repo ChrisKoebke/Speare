@@ -17,8 +17,8 @@ namespace Speare.Runtime
         {
             foreach (var method in typeof(T).GetMethods())
             {
-                Methods[method.Name.GetReliableHashCode()] = method;
-                ParameterPool[method.Name.GetReliableHashCode()] = new object[method.GetParameters().Length];
+                Methods[method.Name.GetHashCode32()] = method;
+                ParameterPool[method.Name.GetHashCode32()] = new object[method.GetParameters().Length];
             }
         }
     }
