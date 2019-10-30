@@ -1,6 +1,6 @@
-﻿using Speare.Ops;
+﻿using Speare.Compilation;
 using Speare.Parsing;
-using Speare.Runtimes;
+using Speare.Runtime;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -24,26 +24,26 @@ namespace Speare.Testing
 
             var builder = new OpBuilder();
             builder.Method()
-                       .Constant(Register.A, 0)
-                       .Constant(Register.B, 5)
+                       .Constant(Register.R0, 0)
+                       .Constant(Register.R1, 5)
                        .Label(":loop")
-                       .Constant(Register.C, 1)
-                       .Add(Register.A, Register.C)
-                       .Move(Register.LastResult, Register.A)
-                       .DebugPrint(Register.A)
-                       .Compare(Register.A, Register.B, Comparison.SmallerThan)
+                       .Constant(Register.R2, 1)
+                       .Add(Register.R0, Register.R2)
+                       .Move(Register.LastResult, Register.R0)
+                       .DebugPrint(Register.R0)
+                       .Compare(Register.R0, Register.R1, Comparison.SmallerThan)
                        .JumpIfTrue(":loop")
-                       .Constant(Register.D, "We made it through the loop!")
-                       .DebugPrint(Register.D)
-                       .Constant(Register.A, "Another test")
+                       .Constant(Register.R3, "We made it through the loop!")
+                       .DebugPrint(Register.R3)
+                       .Constant(Register.Param0, "Another test")
                        .Call(methodIndex: 1)
                        .DebugPrint(Register.LastResult)
                    .Method(parameterCount: 1)
-                       .DebugPrint(Register.A)
+                       .DebugPrint(Register.Param0)
                        .Constant(Register.LastResult, 199)
                        .Return();
 
-            var runtime = Runtime.FromBuilder(builder);
+            var runtime = VM.FromBuilder(builder);
             runtime.Run(methodIndex: 0).MoveNext();
 
             /*Console.WriteLine(code);

@@ -5,9 +5,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Speare.Runtimes
+namespace Speare.Runtime
 {
-    public interface IRuntime
+    public interface IGameRuntime
     {
         IEnumerator Say(string message);
         IEnumerator SayWithOptions(string message, string[] options);

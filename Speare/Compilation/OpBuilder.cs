@@ -1,4 +1,4 @@
-﻿using Speare.Runtimes;
+﻿using Speare.Runtime;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Speare.Ops
+namespace Speare.Compilation
 {
     public unsafe class OpBuilder
     {

@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Speare.Runtimes
+namespace Speare.Runtime
 {
     public static class Interop
     {

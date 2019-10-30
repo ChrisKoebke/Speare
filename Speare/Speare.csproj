@@ -49,28 +49,29 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Ops\ArrayBuilder.cs" />
-    <Compile Include="Ops\Comparison.cs" />
-    <Compile Include="Ops\DataType.cs" />
-    <Compile Include="Ops\OpBuilder.cs" />
-    <Compile Include="Ops\OpCode.cs" />
-    <Compile Include="Runtimes\Interop.cs" />
-    <Compile Include="Runtimes\Register.cs" />
+    <Compile Include="Compilation\ArrayBuilder.cs" />
+    <Compile Include="Compilation\Comparison.cs" />
+    <Compile Include="Compilation\DataType.cs" />
+    <Compile Include="Compilation\OpBuilder.cs" />
+    <Compile Include="Compilation\OpCode.cs" />
+    <Compile Include="Compilation\Variable.cs" />
+    <Compile Include="Runtime\Interop.cs" />
+    <Compile Include="Runtime\P.cs" />
+    <Compile Include="Runtime\Register.cs" />
     <Compile Include="Parsing\Utils.cs" />
-    <Compile Include="Runtimes\IRuntime.cs" />
+    <Compile Include="Runtime\IGameRuntime.cs" />
     <Compile Include="Parsing\StringSpan.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Parsing\Token.cs" />
     <Compile Include="Parsing\Lexer.cs" />
     <Compile Include="Parsing\Chars.cs" />
     <Compile Include="Parsing\TokenType.cs" />
-    <Compile Include="Runtimes\Runtime.cs" />
+    <Compile Include="Runtime\VM.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Compilation\" />
     <Folder Include="Expressions\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
