@@ -172,12 +172,12 @@ namespace Speare.Compilation
             return this;
         }
 
-        public OpBuilder Arithmetic(Register regA, Arithmetic op, Register regB)
+        public OpBuilder Arithmetic(Register regA, Register regB, Arithmetic op)
         {
             _ops.Write((short)Op.Arithmetic);
             _ops.Write((byte)regA);
-            _ops.Write((byte)op);
             _ops.Write((byte)regB);
+            _ops.Write((byte)op);
             return this;
         }
 
