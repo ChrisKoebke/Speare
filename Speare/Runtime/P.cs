@@ -68,5 +68,15 @@ namespace Speare.Runtime
         {
             return mth + methodIndex * 3 + 2; // Methods are [short:address] [byte:parameterCount]
         }
+
+        public static int* StringStartIndex(byte* chrh, int stringIndex)
+        {
+            return (int*)(chrh + stringIndex * 8); // String header is [int:startIndex] [int:length]
+        }
+
+        public static int* StringLength(byte* chrh, int stringIndex)
+        {
+            return (int*)(chrh + stringIndex * 8 + 4); // String header is [int:startIndex] [int:length]
+        }
     }
 }

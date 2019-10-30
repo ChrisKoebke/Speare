@@ -42,13 +42,6 @@ namespace Speare.Runtime
             get { return Ops.Length + Chrh.Length + Chrb.Length + Mth.Length; }
         }
 
-        public static VM FromBuilder(OpBuilder ops)
-        {
-            var runtime = new VM();
-            ops.Build(out runtime.Ops, out runtime.Chrh, out runtime.Chrb, out runtime.Mth);
-            return runtime;
-        }
-
         public unsafe OpCode ReadOp()
         {
             fixed (byte* pointer = Ops)
@@ -60,12 +53,12 @@ namespace Speare.Runtime
             }
         }
 
-        public string ReadChrb(int headerIndex)
+        public string ReadChrb(int stringIndex)
         {
-            fixed (byte* headerPointer = Chrh)
+            fixed (byte* chrh = Chrh)
             {
-                int startIndex = *(int*)(headerPointer + headerIndex * 8);
-                int length = *(int*)(headerPointer + headerIndex * 8 + 4);
+                int startIndex = *P.StringStartIndex(chrh, stringIndex);
+                int length = *P.StringLength(chrh, stringIndex);
 
                 fixed (byte* buffer = Chrb)
                 {
@@ -74,7 +67,7 @@ namespace Speare.Runtime
             }
         }
         
-        public object ReadRegister(Register register)
+        public object ReadRegisterBoxed(Register register)
         {
             fixed (byte* scope = Scope)
             {
@@ -242,7 +235,7 @@ namespace Speare.Runtime
 
                 for (byte i = 0; i <= parameters.Length; i++)
                 {
-                    parameters[i] = ReadRegister((Register)(i + offset));
+                    parameters[i] = ReadRegisterBoxed((Register)(i + offset));
                 }
 
                 var coroutine = info.Invoke(null, parameters) as IEnumerator;
@@ -303,7 +296,7 @@ namespace Speare.Runtime
                 var register = *(Register*)(pointer + Address);
                 Address++;
 
-                Console.WriteLine(ReadRegister(register));
+                Console.WriteLine(ReadRegisterBoxed(register));
             }
         }
 
@@ -311,7 +304,7 @@ namespace Speare.Runtime
         {
             fixed (byte* mth = Mth)
             {
-                Address = *(short*)(mth + methodIndex * 3);
+                Address = *P.MethodAddress(mth, methodIndex);
             }
             return Run();
         }
@@ -384,6 +377,13 @@ namespace Speare.Runtime
                     Coroutine = null;
                 }
             }
+        }
+
+        public static VM FromBuilder(OpBuilder ops)
+        {
+            var runtime = new VM();
+            ops.Build(out runtime.Ops, out runtime.Chrh, out runtime.Chrb, out runtime.Mth);
+            return runtime;
         }
     }
 }
