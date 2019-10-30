@@ -8,12 +8,11 @@ namespace Speare.Compilation
 {
     public enum Comparison : byte
     {
-        None,
-        Equal,
-        NotEqual,
-        LargerThan,
-        SmallerThan,
-        LargerOrEqualThan,
-        SmallerOrEqualThan
+        EQ,
+        NEQ,
+        L,
+        S,
+        LEQ,
+        SEQ
     }
 }

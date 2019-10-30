@@ -8,7 +8,7 @@ namespace Speare.Compilation
 {
     public enum DataType : byte
     {
-        None,
+        Null,
         Bool,
         Int,
         Float,

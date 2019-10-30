@@ -14,10 +14,5 @@ namespace Speare.Runtime
         IEnumerator ChangeSpeaker(string speakerName);
         IEnumerator ChangeFace(string faceName);
         IEnumerator RunGameEvent(string gameEvent);
-
-        object WaitFor(Func<float, bool> function);
-        object WaitForSeconds(float seconds);
-        object WaitForEndOfFrame();
-        object WaitForFixedUpdate();
     }
 }

@@ -12,32 +12,31 @@ namespace Speare.Compilation
 {
     public unsafe class OpBuilder
     {
-        private ArrayBuilder _ops = new ArrayBuilder();
-        private ArrayBuilder _chrh = new ArrayBuilder();
-        private ArrayBuilder _chrb = new ArrayBuilder();
-        private ArrayBuilder _mth = new ArrayBuilder();
+        private Memory _ops = new Memory();
+        private Memory _chrh = new Memory();
+        private Memory _chrb = new Memory();
+        private Memory _mth = new Memory();
         
         private int _chrhAddress = 0;
         private int _chrbOpAddress = 0;
-        private int _methodCount = 0;
 
         private Dictionary<string, int> _labels = new Dictionary<string, int>();
 
         public OpBuilder PushScope()
         {
-            _ops.Write((short)OpCode.PushScope);
+            _ops.Write((short)Op.PushScope);
             return this;
         }
 
         public OpBuilder PopScope()
         {
-            _ops.Write((short)OpCode.PopScope);
+            _ops.Write((short)Op.PopScope);
             return this;
         }
 
         public OpBuilder Constant(Register reg, bool value)
         {
-            _ops.Write((short)OpCode.Constant);
+            _ops.Write((short)Op.Constant);
             _ops.Write((byte)reg);
             _ops.Write((byte)DataType.Bool);
             _ops.Write(value);
@@ -46,7 +45,7 @@ namespace Speare.Compilation
 
         public OpBuilder Constant(Register reg, int value)
         {
-            _ops.Write((short)OpCode.Constant);
+            _ops.Write((short)Op.Constant);
             _ops.Write((byte)reg);
             _ops.Write((byte)DataType.Int);
             _ops.Write(value);
@@ -55,7 +54,7 @@ namespace Speare.Compilation
 
         public OpBuilder Constant(Register reg, float value)
         {
-            _ops.Write((short)OpCode.Constant);
+            _ops.Write((short)Op.Constant);
             _ops.Write((byte)reg);
             _ops.Write((byte)DataType.Float);
             _ops.Write(value);
@@ -64,7 +63,7 @@ namespace Speare.Compilation
 
         public OpBuilder Constant(Register reg, string value)
         {
-            _ops.Write((short)OpCode.Constant);
+            _ops.Write((short)Op.Constant);
             _ops.Write((byte)reg);
             _ops.Write((byte)DataType.ChrPointer);
             _ops.Write(_chrhAddress);
@@ -82,7 +81,7 @@ namespace Speare.Compilation
 
         public OpBuilder Method(int parameterCount = 0)
         {
-            _ops.Write((short)OpCode.Method);
+            _ops.Write((short)Op.Method);
 
             _mth.Write((short)_ops.Position);
             _mth.Write((byte)parameterCount);
@@ -98,7 +97,7 @@ namespace Speare.Compilation
         
         public OpBuilder Move(Register source, Register destination)
         {
-            _ops.Write((short)OpCode.Move);
+            _ops.Write((short)Op.Move);
             _ops.Write((byte)source);
             _ops.Write((byte)destination);
             return this;
@@ -106,7 +105,7 @@ namespace Speare.Compilation
         
         public OpBuilder Compare(Register a, Register b, Comparison comparison)
         {
-            _ops.Write((short)OpCode.Compare);
+            _ops.Write((short)Op.Compare);
             _ops.Write((byte)a);
             _ops.Write((byte)b);
             _ops.Write((byte)comparison);
@@ -115,7 +114,7 @@ namespace Speare.Compilation
 
         public OpBuilder Interop(string methodName)
         {
-            _ops.Write((short)OpCode.Interop);
+            _ops.Write((short)Op.Interop);
             _ops.Write(methodName.GetReliableHashCode());
 
             return this;
@@ -128,26 +127,26 @@ namespace Speare.Compilation
 
         public OpBuilder Jump(int address)
         {
-            _ops.Write((short)OpCode.Jump);
+            _ops.Write((short)Op.Jump);
             _ops.Write(address);
             return this;
         }
 
-        public OpBuilder JumpIfTrue(string label)
+        public OpBuilder JumpIf(string label)
         {
             return JumpIf(_labels[label]);
         }
 
         public OpBuilder JumpIf(int address)
         {
-            _ops.Write((short)OpCode.JumpIfTrue);
+            _ops.Write((short)Op.JumpIf);
             _ops.Write(address);
             return this;
         }
 
         public OpBuilder Add(Register regA, Register regB)
         {
-            _ops.Write((short)OpCode.Add);
+            _ops.Write((short)Op.Add);
             _ops.Write((byte)regA);
             _ops.Write((byte)regB);
             return this;
@@ -155,7 +154,7 @@ namespace Speare.Compilation
 
         public OpBuilder Call(int methodIndex)
         {
-            _ops.Write((short)OpCode.Call);
+            _ops.Write((short)Op.Call);
             _ops.Write((short)methodIndex);
 
             return this;
@@ -163,13 +162,13 @@ namespace Speare.Compilation
 
         public OpBuilder Return()
         {
-            _ops.Write((short)OpCode.Return);
+            _ops.Write((short)Op.Return);
             return this;
         }
 
         public OpBuilder Exit()
         {
-            _ops.Write((short)OpCode.Exit);
+            _ops.Write((short)Op.Exit);
             return this;
         }
 
@@ -180,7 +179,7 @@ namespace Speare.Compilation
 
         public OpBuilder DebugPrint(byte reg)
         {
-            _ops.Write((short)OpCode.DebugPrint);
+            _ops.Write((short)Op.DebugPrint);
             _ops.Write(reg);
             return this;
         }

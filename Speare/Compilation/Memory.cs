@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Speare.Compilation
 {
-    public unsafe class ArrayBuilder
+    public unsafe class Memory
     {
         public byte[] Data = new byte[1];
         public int Position = 0;

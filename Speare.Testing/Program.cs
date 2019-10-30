@@ -1,5 +1,5 @@
 ﻿using Speare.Compilation;
-using Speare.Parsing;
+using Speare.Parser;
 using Speare.Runtime;
 using System;
 using System.Collections.Generic;
@@ -31,8 +31,8 @@ namespace Speare.Testing
                        .Add(Register.R0, Register.R2)
                        .Move(Register.LastResult, Register.R0)
                        .DebugPrint(Register.R0)
-                       .Compare(Register.R0, Register.R1, Comparison.SmallerThan)
-                       .JumpIfTrue(":loop")
+                       .Compare(Register.R0, Register.R1, Comparison.S)
+                       .JumpIf(":loop")
                        .Constant(Register.R3, "We made it through the loop!")
                        .DebugPrint(Register.R3)
                        .Constant(Register.Param0, "Another test")

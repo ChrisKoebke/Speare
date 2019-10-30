@@ -1,11 +1,11 @@
-﻿using Speare.Parsing;
+﻿using Speare.Parser;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Speare.Parsing
+namespace Speare.Parser
 {
     public class Token
     {

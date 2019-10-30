@@ -6,16 +6,16 @@ using System.Threading.Tasks;
 
 namespace Speare.Compilation
 {
-    public enum OpCode : short
+    public enum Op : short
     {
-        None,
+        Null,
         PushScope,
         PopScope,
         Constant,
         Move,
         Compare,
         Jump,
-        JumpIfTrue,
+        JumpIf,
         Call,
         Method,
         Return,

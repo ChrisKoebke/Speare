@@ -2,6 +2,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -18,6 +19,9 @@ namespace Speare.Runtime
         }
 
         public static IGameRuntime GameRuntime;
+        public static ICoroutineRuntime CoroutineRuntime;
+
+        public TimeSpan FrameBudget;
 
         public Stack<byte[]> Stack = new Stack<byte[]>();
         public Stack<byte[]> ScopePool = new Stack<byte[]>();
@@ -42,11 +46,11 @@ namespace Speare.Runtime
             get { return Ops.Length + Chrh.Length + Chrb.Length + Mth.Length; }
         }
 
-        public unsafe OpCode ReadOp()
+        public unsafe Op ReadOp()
         {
             fixed (byte* pointer = Ops)
             {
-                var result = *(OpCode*)(pointer + Address);
+                var result = *(Op*)(pointer + Address);
                 Address += 2;
 
                 return result;
@@ -158,7 +162,7 @@ namespace Speare.Runtime
             }
         }
 
-        public void OpJumpIfTrue()
+        public void OpJumpIf()
         {
             fixed (byte* ops = Ops)
             fixed (byte* scope = Scope)
@@ -310,63 +314,65 @@ namespace Speare.Runtime
         }
 
         public IEnumerator Run()
-        { 
+        {
+            var timer = Stopwatch.StartNew();
+
             while (Address < Ops.Length)
             {
                 var op = ReadOp();
 
                 switch (op)
                 {
-                    case OpCode.PushScope:
+                    case Op.PushScope:
                         OpPushScope();
                         break;
-                    case OpCode.PopScope:
+                    case Op.PopScope:
                         OpPopScope();
                         break;
-                    case OpCode.Constant:
+                    case Op.Constant:
                         OpConstant();
                         break;
-                    case OpCode.Move:
+                    case Op.Move:
                         OpMove();
                         break;
-                    case OpCode.Compare:
+                    case Op.Compare:
                         OpCompare();
                         break;
-                    case OpCode.Call:
+                    case Op.Call:
                         OpCall();
                         break;
-                    case OpCode.Return:
+                    case Op.Return:
                         OpReturn();
                         break;
-                    case OpCode.Interop:
+                    case Op.Interop:
                         OpInterop();
                         break;
-                    case OpCode.Jump:
+                    case Op.Jump:
                         OpJump();
                         break;
-                    case OpCode.JumpIfTrue:
-                        OpJumpIfTrue();
+                    case Op.JumpIf:
+                        OpJumpIf();
                         break;
-                    case OpCode.Add:
+                    case Op.Add:
                         OpAdd();
                         break;
-                    case OpCode.Subtract:
+                    case Op.Subtract:
                         break;
-                    case OpCode.Divide:
+                    case Op.Divide:
                         break;
-                    case OpCode.Multiply:
+                    case Op.Multiply:
                         break;
-                    case OpCode.Modulo:
+                    case Op.Modulo:
                         break;
-                    case OpCode.Equal:
+                    case Op.Equal:
                         break;
-                    case OpCode.Not:
+                    case Op.Not:
                         break;
-                    case OpCode.Method:
-                    case OpCode.Exit:
+                    case Op.Method:
+                    case Op.Exit:
                         OpExit();
                         break;
-                    case OpCode.DebugPrint:
+                    case Op.DebugPrint:
                         OpDebugPrint();
                         break;
                 }
@@ -376,14 +382,20 @@ namespace Speare.Runtime
                     yield return Coroutine;
                     Coroutine = null;
                 }
+
+                if (timer.Elapsed >= FrameBudget && CoroutineRuntime != null)
+                {
+                    yield return CoroutineRuntime.WaitForEndOfFrame();
+                    timer.Restart();
+                }
             }
         }
 
         public static VM FromBuilder(OpBuilder ops)
         {
-            var runtime = new VM();
-            ops.Build(out runtime.Ops, out runtime.Chrh, out runtime.Chrb, out runtime.Mth);
-            return runtime;
+            var vm = new VM();
+            ops.Build(out vm.Ops, out vm.Chrh, out vm.Chrb, out vm.Mth);
+            return vm;
         }
     }
 }
