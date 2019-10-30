@@ -17,7 +17,7 @@ namespace Speare.Parser
             if (Type == TokenType.EOF)
                 return "EOF";
 
-            return string.Format("{0} '{1}'", Type.ToString(), base.ToString());
+            return string.Format("{0} '{1}'", Type.ToString(), Span.ToString());
         }
 
         public override string ToString()

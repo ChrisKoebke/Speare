@@ -1,4 +1,5 @@
-﻿using Speare.Runtime;
+﻿using Speare.Compiler;
+using Speare.Runtime;
 using Speare.Utility;
 using System;
 using System.Collections.Generic;
@@ -8,7 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Speare.Compilation
+namespace Speare.Compiler
 {
     public unsafe class OpBuilder
     {
@@ -21,6 +22,19 @@ namespace Speare.Compilation
         private int _chrbOpAddress = 0;
 
         private Dictionary<string, int> _labels = new Dictionary<string, int>();
+
+        public void Clear()
+        {
+            _ops.Clear();
+            _chrh.Clear();
+            _chrb.Clear();
+            _mth.Clear();
+
+            _chrhAddress = 0;
+            _chrbOpAddress = 0;
+
+            _labels.Clear();
+        }
 
         public OpBuilder PushScope()
         {
@@ -130,15 +144,6 @@ namespace Speare.Compilation
             _ops.Write((byte)source);
             return this;
         }
-        
-        public OpBuilder Compare(Register a, Register b, Comparison comparison)
-        {
-            _ops.Write((short)Op.Compare);
-            _ops.Write((byte)a);
-            _ops.Write((byte)b);
-            _ops.Write((byte)comparison);
-            return this;
-        }
 
         public OpBuilder Interop(string methodName)
         {
@@ -213,12 +218,32 @@ namespace Speare.Compilation
             return this;
         }
 
-        public void Build(out byte[] ops, out byte[] chrh, out byte[] chrb, out byte[] mth)
+        public void Build(byte[] result)
         {
-            ops = _ops.Data;
-            chrh = _chrh.Data;
-            chrb = _chrb.Data;
-            mth = _mth.Data;
+            fixed (byte* pointer = result)
+            {
+                // Op address
+                *(int*)(pointer) = 16;
+                // Mth address
+                *(int*)(pointer + 4) = 16 + _ops.Position;
+                // Chrh address
+                *(int*)(pointer + 8) = 16 + _ops.Position + _mth.Position;
+                // Chrb address
+                *(int*)(pointer + 12) = 16 + _ops.Position + _mth.Position + _chrh.Position;
+            }
+
+            Buffer.BlockCopy(_ops.Data, 0, result, 16, _ops.Position);
+            Buffer.BlockCopy(_mth.Data, 0, result, 16 + _ops.Position, _mth.Position);
+            Buffer.BlockCopy(_chrh.Data, 0, result, 16 + _ops.Position + _mth.Position, _chrh.Position);
+            Buffer.BlockCopy(_chrb.Data, 0, result, 16 + _ops.Position + _mth.Position + _chrh.Position, _chrb.Position);
+        }
+
+        public byte[] Build()
+        {
+            var result = new byte[16 + _ops.Position + _mth.Position + _chrh.Position + _chrb.Position];
+            Build(result);
+
+            return result;
         }
     }
 }

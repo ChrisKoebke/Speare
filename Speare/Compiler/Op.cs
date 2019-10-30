@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Speare.Compilation
+namespace Speare.Compiler
 {
     public enum Op : short
     {

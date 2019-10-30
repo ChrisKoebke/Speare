@@ -1,4 +1,4 @@
-﻿using Speare.Compilation;
+﻿using Speare.Compiler;
 using System;
 using System.Collections.Generic;
 using System.Linq;

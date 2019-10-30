@@ -1,4 +1,4 @@
-﻿using Speare.Compilation;
+﻿using Speare.Compiler;
 using Speare.Utility;
 using System;
 using System.Collections;
@@ -22,39 +22,61 @@ namespace Speare.Runtime
         public static IGameRuntime GameRuntime;
         public static ICoroutineRuntime CoroutineRuntime;
 
-        public TimeSpan FrameBudget;
+        private byte[] _byteCode;
 
         private Stack<byte[]> _stack = new Stack<byte[]>();
         private Stack<byte[]> _scopePool = new Stack<byte[]>();
-
         private Dictionary<int, object> _globals = new Dictionary<int, object>();
 
-        public byte[] Ops;
-        public byte[] Chrh;
-        public byte[] Chrb;
-        public byte[] Mth;
+        private TimeSpan _frameBudget;
+        private IEnumerator _coroutine;
 
-        public int Address = 0;
-        public IEnumerator Coroutine;
+        private int _opAddress;
+        private int _mthAddress;
+        private int _chrhAddress;
+        private int _chrbAddress;
 
-        public object this[int hash]
+        private int _address;
+        private int _maxAddress;
+
+        public int Address { get => _address; set => _address = value; }
+        public TimeSpan FrameBudget { get => _frameBudget; set => _frameBudget = value; }
+
+        public void Load(byte[] byteCode)
+        {
+            _byteCode = byteCode;
+
+            fixed (byte* pointer = byteCode)
+            {
+                _opAddress      = *(int*)(pointer);
+                _mthAddress     = *(int*)(pointer + 4);
+                _chrhAddress    = *(int*)(pointer + 8);
+                _chrbAddress    = *(int*)(pointer + 12);
+
+                // Subtract header size from methods header to get
+                // the maximum _address for the Run() method
+                _maxAddress = _mthAddress - _opAddress;
+            }
+        }
+
+        public object this[string varName]
+        {
+            get { return this[varName.GetHashCode32()]; }
+            set { this[varName.GetHashCode32()] = value; }
+        }
+
+        public object this[int varHash]
         {
             get
             {
                 object result;
-                _globals.TryGetValue(hash, out result);
+                _globals.TryGetValue(varHash, out result);
                 return result;
             }
             set
             {
-                _globals[hash] = value;
+                _globals[varHash] = value;
             }
-        }
-
-        public object this[string name]
-        {
-            get { return this[name.GetHashCode32()]; }
-            set { this[name.GetHashCode32()] = value; }
         }
 
         public byte[] Scope
@@ -64,7 +86,7 @@ namespace Speare.Runtime
 
         public int MemoryAllocated
         {
-            get { return _scopePool.Count * 170 + _stack.Count * 170 + Ops.Length + Chrh.Length + Chrb.Length + Mth.Length; }
+            get { return _scopePool.Count * 170 + _stack.Count * 170 + _byteCode.Length; }
         }
 
         public void Allocate(int poolSize = 128)
@@ -77,10 +99,10 @@ namespace Speare.Runtime
 
         public unsafe Op Next()
         {
-            fixed (byte* pointer = Ops)
+            fixed (byte* pointer = _byteCode)
             {
-                var result = *(Op*)(pointer + Address);
-                Address += 2;
+                var result = *(Op*)(pointer + _opAddress + _address);
+                _address += 2;
 
                 return result;
             }
@@ -88,15 +110,12 @@ namespace Speare.Runtime
 
         public string ReadChrbString(int stringIndex)
         {
-            fixed (byte* chrh = Chrh)
+            fixed (byte* pointer = _byteCode)
             {
-                int startIndex = *P.StringStartIndex(chrh, stringIndex);
-                int length = *P.StringLength(chrh, stringIndex);
+                int startIndex = *P.StringStartIndex(pointer + _chrhAddress, stringIndex);
+                int length = *P.StringLength(pointer + _chrhAddress, stringIndex);
 
-                fixed (byte* buffer = Chrb)
-                {
-                    return new string((sbyte*)buffer, startIndex, length, Encoding.Default);
-                }
+                return new string((sbyte*)(pointer + _chrbAddress), startIndex, length, Encoding.Default);
             }
         }
         
@@ -140,26 +159,26 @@ namespace Speare.Runtime
 
         public void OpConstant()
         {
-            fixed (byte* ops = Ops)
+            fixed (byte* pointer = _byteCode)
             fixed (byte* scope = Scope)
             {
-                var register = *(Register*)(ops + Address);
+                var register = *(Register*)(pointer + _opAddress + _address);
 
-                *P.DataType(scope, register) = *(DataType*)(ops + Address + 1);
-                *P.IntValue(scope, register) = *(int*)(ops + Address + 2);
+                *P.DataType(scope, register) = *(DataType*)(pointer + _opAddress + _address + 1);
+                *P.IntValue(scope, register) = *(int*)(pointer + _opAddress + _address + 2);
                 
-                Address += 6;
+                _address += 6;
             }
         }
 
         public void OpGlobalRead()
         {
-            fixed (byte* ops = Ops)
+            fixed (byte* pointer = _byteCode)
             fixed (byte* scope = Scope)
             {
-                var register = *(Register*)(ops + Address);
-                var hash = *(int*)(ops + Address + 1);
-                Address += 5;
+                var register = *(Register*)(pointer + _opAddress + _address);
+                var hash = *(int*)(pointer + _opAddress + _address + 1);
+                _address += 5;
 
                 var value = this[hash];
                 if (value == null)
@@ -194,13 +213,12 @@ namespace Speare.Runtime
 
         public void OpGlobalWrite()
         {
-            fixed (byte* ops = Ops)
-            fixed (byte* scope = Scope)
+            fixed (byte* pointer = _byteCode)
             {
-                var hash = *(int*)(ops + Address);
-                var register = *(Register*)(ops + Address + 4);
+                var hash = *(int*)(pointer + _opAddress + _address);
+                var register = *(Register*)(pointer + _opAddress + _address + 4);
 
-                Address += 5;
+                _address += 5;
 
                 this[hash] = ReadRegisterBoxed(register);
             }
@@ -208,13 +226,13 @@ namespace Speare.Runtime
 
         public void OpSet()
         {
-            fixed (byte* ops = Ops)
+            fixed (byte* pointer = _byteCode)
             fixed (byte* scope = Scope)
             {
-                var destination = *(Register*)(ops + Address);
-                var source = *(Register*)(ops + Address + 1);
+                var destination = *(Register*)(pointer + _opAddress + _address);
+                var source = *(Register*)(pointer + _opAddress + _address + 1);
 
-                Address += 2;
+                _address += 2;
 
                 *P.DataType(scope, destination) = *P.DataType(scope, source);
                 *P.IntValue(scope, destination) = *P.IntValue(scope, source);
@@ -223,53 +241,52 @@ namespace Speare.Runtime
 
         public void OpCompare()
         {
-            fixed (byte* ops = Ops)
+            fixed (byte* pointer = _byteCode)
             fixed (byte* scope = Scope)
             {
-                var a = *(Register*)(ops + Address);
-                var b = *(Register*)(ops + Address + 1);
+                var a = *(Register*)(pointer + _opAddress + _address);
+                var b = *(Register*)(pointer + _opAddress + _address + 1);
 
-                Address += 2;
+                _address += 2;
 
                 *P.DataType(scope, Register.LastResult) = DataType.Bool;
                 *P.BoolValue(scope, Register.LastResult) = *P.IntValue(scope, a) < *P.IntValue(scope, b);
 
                 // TODO: Implement comparison (for now we just skip the comparison byte)
-                Address += 1;
+                _address += 1;
             }
         }
 
         public void OpJump()
         {
-            fixed (byte* ops = Ops)
+            fixed (byte* pointer = _byteCode)
             {
-                Address = *(int*)(ops + Address);
+                _address = *(int*)(pointer + _opAddress + _address);
             }
         }
 
         public void OpJumpIf()
         {
-            fixed (byte* ops = Ops)
+            fixed (byte* pointer = _byteCode)
             fixed (byte* scope = Scope)
             {
                 if (*P.DataType(scope, Register.LastResult) != DataType.Bool ||
                     *P.BoolValue(scope, Register.LastResult) == false)
                 {
-                    Address += 4;
+                    _address += 4;
                     return;
                 }
 
-                Address = *(int*)(ops + Address);
+                _address = *(int*)(pointer + _opAddress + _address);
             }
         }
 
         public void OpCall()
         {
-            fixed (byte* ops = Ops)
-            fixed (byte* mth = Mth)
+            fixed (byte* pointer = _byteCode)
             {
-                var methodIndex = *(short*)(ops + Address);
-                var parameterCount = *P.MethodParameterCount(mth, methodIndex);
+                var methodIndex = *(short*)(pointer + _opAddress + _address);
+                var parameterCount = *P.MethodParameterCount(pointer + _mthAddress, methodIndex);
 
                 var previous = Scope;
                 OpPushScope();
@@ -278,7 +295,7 @@ namespace Speare.Runtime
                 fixed (byte* previosScope = previous)
                 {
                     *P.DataType(scope, Register.ReturnAddress) = DataType.Int;
-                    *P.IntValue(scope, Register.ReturnAddress) = Address;
+                    *P.IntValue(scope, Register.ReturnAddress) = _address;
                     
                     // TODO: Instead of copying the registers from the current scope the compiler
                     //       should be responsible of creating a new scope and running the passed
@@ -290,7 +307,7 @@ namespace Speare.Runtime
                         *P.IntValue(scope, Register.Param0, i) = *P.IntValue(previosScope, Register.Param0, i);
                     }
 
-                    Address = *P.MethodAddress(mth, methodIndex);
+                    _address = *P.MethodAddress(pointer + _mthAddress, methodIndex);
                 }
             }
         }
@@ -308,15 +325,15 @@ namespace Speare.Runtime
                     *P.IntValue(scope, Register.LastResult) = *P.IntValue(previous, Register.LastResult);
                 }
 
-                Address = *P.IntValue(previous, Register.ReturnAddress);
+                _address = *P.IntValue(previous, Register.ReturnAddress);
             }
         }
 
         public void OpInterop()
         {
-            fixed (byte* pointer = Ops)
+            fixed (byte* pointer = _byteCode)
             {
-                var hash = *(int*)(pointer + Address);
+                var hash = *(int*)(pointer + _opAddress + _address);
 
                 var info = Interop.Methods[hash];
                 var parameters = Interop.ParameterPool[hash];
@@ -331,20 +348,20 @@ namespace Speare.Runtime
                 if (coroutine == null)
                     return;
 
-                Coroutine = coroutine;
+                _coroutine = coroutine;
             }
         }
 
         public void OpArithmetic()
         {
-            fixed (byte* ops = Ops)
+            fixed (byte* pointer = _byteCode)
             fixed (byte* scope = Scope)
             {
-                var a = *(Register*)(ops + Address);
-                var b = *(Register*)(ops + Address + 1);
-                var arithmetic = *(Arithmetic*)(ops + Address + 2);
+                var a = *(Register*)(pointer + _opAddress + _address);
+                var b = *(Register*)(pointer + _opAddress + _address + 1);
+                var arithmetic = *(Arithmetic*)(pointer + _opAddress + _address + 2);
 
-                Address += 3;
+                _address += 3;
 
                 var function = Arithmetics.Get(
                     *P.DataType(scope, a),
@@ -352,21 +369,24 @@ namespace Speare.Runtime
                     arithmetic
                 );
 
+                if (function == null)
+                    return;
+
                 function(scope, a, b);
             }
         }
 
         public void OpExit()
         {
-            Address = Ops.Length;
+            _address = _mthAddress;
         }
 
         public void OpDebugPrint()
         {
-            fixed (byte* pointer = Ops)
+            fixed (byte* pointer = _byteCode)
             {
-                var register = *(Register*)(pointer + Address);
-                Address++;
+                var register = *(Register*)(pointer + _opAddress + _address);
+                _address++;
 
                 Console.WriteLine(ReadRegisterBoxed(register));
             }
@@ -374,9 +394,9 @@ namespace Speare.Runtime
 
         public IEnumerator Run(int methodIndex)
         {
-            fixed (byte* mth = Mth)
+            fixed (byte* pointer = _byteCode)
             {
-                Address = *P.MethodAddress(mth, methodIndex);
+                _address = *P.MethodAddress(pointer + _mthAddress, methodIndex);
             }
             return Run();
         }
@@ -385,7 +405,7 @@ namespace Speare.Runtime
         {
             var timer = Stopwatch.StartNew();
 
-            while (Address < Ops.Length)
+            while (Address < _maxAddress)
             {
                 var op = Next();
 
@@ -439,10 +459,10 @@ namespace Speare.Runtime
                         break;
                 }
 
-                if (Coroutine != null)
+                if (_coroutine != null)
                 {
-                    yield return Coroutine;
-                    Coroutine = null;
+                    yield return _coroutine;
+                    _coroutine = null;
                 }
                 else if (timer.Elapsed >= FrameBudget && CoroutineRuntime != null)
                 {
@@ -454,8 +474,13 @@ namespace Speare.Runtime
 
         public static VM FromBuilder(OpBuilder ops)
         {
+            return FromByteCode(ops.Build());
+        }
+
+        public static VM FromByteCode(byte[] code)
+        {
             var vm = new VM();
-            ops.Build(out vm.Ops, out vm.Chrh, out vm.Chrb, out vm.Mth);
+            vm.Load(code);
             return vm;
         }
     }

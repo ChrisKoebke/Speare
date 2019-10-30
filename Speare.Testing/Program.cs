@@ -1,4 +1,4 @@
-﻿using Speare.Compilation;
+﻿using Speare.Compiler;
 using Speare.Parser;
 using Speare.Runtime;
 using System;
@@ -13,9 +13,9 @@ namespace Speare.Testing
 {
     class Program
     {
-        public static void PrintVector(string x, int y, int z)
+        public static void PrintVector(string x)
         {
-            Console.WriteLine("Vector " + x + "x" + y + "x" + z);
+            Console.WriteLine(x);
         }
 
         static OpBuilder Test1()
@@ -30,7 +30,7 @@ namespace Speare.Testing
                 .Arithmetic(Register.R0, Register.R2, Arithmetic.Add)
                 .Set(Register.R0, Register.LastResult)
                 .DebugPrint(Register.R0)
-                .Compare(Register.R0, Register.R1, Comparison.S)
+                .Arithmetic(Register.R0, Register.R1, Arithmetic.LessThan)
                 .JumpIf(":loop")
                 .Constant(Register.R3, "We made it through the loop!")
                 .DebugPrint(Register.R3)
@@ -57,20 +57,37 @@ namespace Speare.Testing
                 .GlobalWrite("TestVar", Register.LastResult);
         }
 
-        static void Main(string[] args)
+
+        static void TokenizerTest()
         {
-            Interop.RegisterMethodsOf<Program>();
-            
-            var vm = VM.FromBuilder(TestGlobalReadWrite());
+            var code = "{\n Tobi: \"Hello this is a test\"\nTestMethod(1, 2)\n}\nTestMethod(a, b)\n{\n}";
 
-            vm.Allocate();
-            vm["TestVar"] = 33.1f;
+            var tokens = Lexer.Tokenize(code);
+            foreach (var token in tokens)
+            {
+                if (token.Type == TokenType.EOF)
+                    break;
 
-            vm.Run(methodIndex: 0).MoveNext();
-
-            Console.WriteLine(vm["TestVar"]);
+                Console.WriteLine(token.ToFormattedString());
+            }
 
             Console.ReadLine();
+        }
+
+        static void VMTest()
+        {
+            Interop.RegisterMethodsOf<Program>();
+
+            var machine = VM.FromByteCode(Test1().Build());
+            machine["TestVar"] = "From C#";
+            machine.Run(methodIndex: 0).MoveNext();
+
+            Console.ReadLine();
+        }
+
+        static void Main(string[] args)
+        {
+            VMTest();
         }
     }
 }

@@ -82,29 +82,25 @@ namespace Speare.Parser
             return token != null ? token.Type : TokenType.None;
         }
 
-        public static bool TokenizeBeginBlock(string code, ref int tokenIndex, ref int startIndex, ref int depth)
+        public static bool TokenizeBeginBlock(string code, ref int tokenIndex, ref int startIndex)
         {
             if (code[startIndex] != Chars.BeginBlock)
                 return false;
 
             AddToken(code, ref tokenIndex, ref startIndex, startIndex + 1, TokenType.BeginBlock);
-            depth++;
-
             return true;
         }
 
-        public static bool TokenizeEndBlock(string code, ref int tokenIndex, ref int startIndex, ref int depth)
+        public static bool TokenizeEndBlock(string code, ref int tokenIndex, ref int startIndex)
         {
             if (code[startIndex] != Chars.EndBlock)
                 return false;
 
             AddToken(code, ref tokenIndex, ref startIndex, startIndex + 1, TokenType.EndBlock);
-            depth--;
-
             return true;
         }
 
-        public static bool TokenizeSpeaker(string code, ref int tokenIndex, ref int startIndex, ref int depth)
+        public static bool TokenizeSpeaker(string code, ref int tokenIndex, ref int startIndex)
         {
             var index = startIndex;
 
@@ -127,49 +123,15 @@ namespace Speare.Parser
             return false;
         }
 
-        public static bool TokenizeSentence(string code, ref int tokenIndex, ref int startIndex, ref int depth)
-        {
-            if (GetLastTokenType(tokenIndex) != TokenType.Speaker)
-                return false;
-
-            var character = code[startIndex];
-            if (Chars.IsWhitespace(character) || character == Chars.SpeakerSeparator)
-                return false;
-
-            var index = startIndex;
-
-            while (index < code.Length)
-            {
-                if (code[index] == Chars.NewLine)
-                {
-                    AddToken(code, ref tokenIndex, ref startIndex, index, TokenType.Sentence);
-                    return true;
-                }
-                if (code[index] == Chars.EndBlock)
-                {
-                    index--;
-
-                    SkipWhitespaceBackwards(code, ref index);
-                    AddToken(code, ref tokenIndex, ref startIndex, index, TokenType.Sentence);
-
-                    return true;
-                }
-
-                index++;
-            }
-
-            return false;
-        }
-
-        public static bool TokenizeMethod(string code, ref int tokenIndex, ref int startIndex, ref int depth)
+        public static bool TokenizeMethod(string code, ref int tokenIndex, ref int startIndex)
         {
             var index = startIndex;
 
             while (index < code.Length)
             {
-                if (code[index] == Chars.BeginParameters && index > startIndex)
+                if (code[index] == Chars.OpenParenthesis && index > startIndex)
                 {
-                    AddToken(code, ref tokenIndex, ref startIndex, index, depth == 0 ? TokenType.MethodDefinition : TokenType.MethodCall);
+                    AddToken(code, ref tokenIndex, ref startIndex, index, TokenType.Method);
                     return true;
                 }
 
@@ -182,25 +144,25 @@ namespace Speare.Parser
             return false;
         }
 
-        public static bool TokenizeBeginParameters(string code, ref int tokenIndex, ref int startIndex, ref int depth)
+        public static bool TokenizeBeginParameters(string code, ref int tokenIndex, ref int startIndex)
         {
-            if (code[startIndex] != Chars.BeginParameters)
+            if (code[startIndex] != Chars.OpenParenthesis)
                 return false;
 
-            AddToken(code, ref tokenIndex, ref startIndex, startIndex + 1, TokenType.BeginParameters);
+            AddToken(code, ref tokenIndex, ref startIndex, startIndex + 1, TokenType.OpenParenthesis);
             return true;
         }
 
-        public static bool TokenizeEndParameters(string code, ref int tokenIndex, ref int startIndex, ref int depth)
+        public static bool TokenizeEndParameters(string code, ref int tokenIndex, ref int startIndex)
         {
-            if (code[startIndex] != Chars.EndParameters)
+            if (code[startIndex] != Chars.CloseParenthesis)
                 return false;
 
-            AddToken(code, ref tokenIndex, ref startIndex, startIndex + 1, TokenType.EndParameters);
+            AddToken(code, ref tokenIndex, ref startIndex, startIndex + 1, TokenType.CloseParenthesis);
             return true;
         }
 
-        public static bool TokenizeParameterSeparator(string code, ref int tokenIndex, ref int startIndex, ref int depth)
+        public static bool TokenizeParameterSeparator(string code, ref int tokenIndex, ref int startIndex)
         {
             if (code[startIndex] != Chars.ParameterSeparator)
                 return false;
@@ -209,7 +171,7 @@ namespace Speare.Parser
             return true;
         }
 
-        public static bool TokenizeBeginGameEvent(string code, ref int tokenIndex, ref int startIndex, ref int depth)
+        public static bool TokenizeBeginGameEvent(string code, ref int tokenIndex, ref int startIndex)
         {
             if (code[startIndex] != Chars.BeginGameEvent ||
                 code[startIndex + 1] != Chars.BeginGameEvent)
@@ -219,7 +181,7 @@ namespace Speare.Parser
             return true;
         }
 
-        public static bool TokenizeEndGameEvent(string code, ref int tokenIndex, ref int startIndex, ref int depth)
+        public static bool TokenizeEndGameEvent(string code, ref int tokenIndex, ref int startIndex)
         {
             if (code[startIndex] != Chars.EndGameEvent ||
                 code[startIndex + 1] != Chars.EndGameEvent)
@@ -229,7 +191,7 @@ namespace Speare.Parser
             return true;
         }
 
-        public static bool TokenizeIdentifier(string code, ref int tokenIndex, ref int startIndex, ref int depth)
+        public static bool TokenizeIdentifier(string code, ref int tokenIndex, ref int startIndex)
         {
             if (!Chars.IsIdentifier(code[startIndex]))
                 return false;
@@ -242,7 +204,7 @@ namespace Speare.Parser
             return true;
         }
 
-        public static bool TokenizeInteger(string code, ref int tokenIndex, ref int startIndex, ref int depth)
+        public static bool TokenizeInteger(string code, ref int tokenIndex, ref int startIndex)
         {
             if (!Chars.IsInteger(code[startIndex]))
                 return false;
@@ -255,26 +217,45 @@ namespace Speare.Parser
             return true;
         }
 
+        public static bool TokenizeString(string code, ref int tokenIndex, ref int startIndex)
+        {
+            if (code[startIndex] != Chars.Quotation)
+                return false;
+
+            // Skip the opening quotation
+            startIndex++;
+
+            var index = startIndex;
+            while (index < code.Length && code[index] != Chars.Quotation)
+                index++;
+
+            AddToken(code, ref tokenIndex, ref startIndex, index, TokenType.String);
+
+            // Skip the closing quotation
+            startIndex++;
+
+            return true;
+        }
+
         public static Token[] Tokenize(string code)
         {
             int startIndex = 0,
-                tokenIndex = 0,
-                depth = 0;
+                tokenIndex = 0;
 
             while (startIndex < code.Length)
             {
-                var result = TokenizeBeginBlock(code, ref tokenIndex, ref startIndex, ref depth) ||
-                             TokenizeEndBlock(code, ref tokenIndex, ref startIndex, ref depth) ||
-                             TokenizeSpeaker(code, ref tokenIndex, ref startIndex, ref depth) ||
-                             TokenizeSentence(code, ref tokenIndex, ref startIndex, ref depth) ||
-                             TokenizeMethod(code, ref tokenIndex, ref startIndex, ref depth) ||
-                             TokenizeBeginParameters(code, ref tokenIndex, ref startIndex, ref depth) ||
-                             TokenizeEndParameters(code, ref tokenIndex, ref startIndex, ref depth) ||
-                             TokenizeParameterSeparator(code, ref tokenIndex, ref startIndex, ref depth) ||
-                             TokenizeBeginGameEvent(code, ref tokenIndex, ref startIndex, ref depth) ||
-                             TokenizeEndGameEvent(code, ref tokenIndex, ref startIndex, ref depth) ||
-                             TokenizeInteger(code, ref tokenIndex, ref startIndex, ref depth) ||
-                             TokenizeIdentifier(code, ref tokenIndex, ref startIndex, ref depth);
+                var result = TokenizeBeginBlock(code, ref tokenIndex, ref startIndex) ||
+                             TokenizeEndBlock(code, ref tokenIndex, ref startIndex) ||
+                             TokenizeMethod(code, ref tokenIndex, ref startIndex) ||
+                             TokenizeBeginParameters(code, ref tokenIndex, ref startIndex) ||
+                             TokenizeEndParameters(code, ref tokenIndex, ref startIndex) ||
+                             TokenizeParameterSeparator(code, ref tokenIndex, ref startIndex) ||
+                             TokenizeBeginGameEvent(code, ref tokenIndex, ref startIndex) ||
+                             TokenizeEndGameEvent(code, ref tokenIndex, ref startIndex) ||
+                             TokenizeSpeaker(code, ref tokenIndex, ref startIndex) ||
+                             TokenizeInteger(code, ref tokenIndex, ref startIndex) ||
+                             TokenizeString(code, ref tokenIndex, ref startIndex) ||
+                             TokenizeIdentifier(code, ref tokenIndex, ref startIndex);
 
                 if (!result && !char.IsWhiteSpace(code[startIndex]))
                 {

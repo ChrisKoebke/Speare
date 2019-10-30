@@ -5,11 +5,11 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Speare.Compilation
+namespace Speare.Compiler
 {
     public unsafe class Memory
     {
-        public byte[] Data = new byte[1];
+        public byte[] Data = new byte[256];
         public int Position = 0;
 
         private void BoundsCheck(int numberOfBytesAdded)
@@ -24,6 +24,12 @@ namespace Speare.Compilation
                 return;
 
             Array.Resize(ref Data, newSize);
+        }
+
+        public void Clear()
+        {
+            Array.Clear(Data, 0, Data.Length);
+            Position = 0;
         }
 
         public void Write(int value)

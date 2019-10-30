@@ -12,8 +12,10 @@ namespace Speare.Parser
         public static char EndBlock = '}';
         public static char SpeakerSeparator = ':';
         public static char NewLine = '\n';
-        public static char BeginParameters = '(';
-        public static char EndParameters = ')';
+        public static char OpenParenthesis = '(';
+        public static char CloseParenthesis = ')';
+        public static char Quotation = '"';
+        public static char Assignment = '=';
         public static char ParameterSeparator = ',';
         public static char BeginGameEvent = '<';
         public static char EndGameEvent = '>';
