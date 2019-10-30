@@ -1,4 +1,5 @@
 ﻿using Speare.Runtime;
+using Speare.Utility;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -115,7 +116,7 @@ namespace Speare.Compilation
         public OpBuilder Interop(string methodName)
         {
             _ops.Write((short)OpCode.Interop);
-            _ops.Write(methodName.GetHashCode());
+            _ops.Write(methodName.GetReliableHashCode());
 
             return this;
         }

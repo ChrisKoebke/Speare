@@ -38,6 +38,8 @@ namespace Speare.Testing
                        .Constant(Register.Param0, "Another test")
                        .Call(methodIndex: 1)
                        .DebugPrint(Register.LastResult)
+                       .Constant(Register.Param0, "hi")
+                       .Interop("PrintVector")
                    .Method(parameterCount: 1)
                        .DebugPrint(Register.Param0)
                        .Constant(Register.LastResult, 199)

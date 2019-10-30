@@ -95,7 +95,7 @@ namespace Speare.Runtime
                 return;
             }
 
-            Stack.Push(new byte[32 * 5]);
+            Stack.Push(new byte[26 * 5]);
         }
 
         public void OpPopScope()
@@ -233,7 +233,7 @@ namespace Speare.Runtime
                 var parameters = Interop.ParameterPool[hash];
                 var offset = (byte)Register.Param0;
 
-                for (byte i = 0; i <= parameters.Length; i++)
+                for (byte i = 0; i < parameters.Length; i++)
                 {
                     parameters[i] = ReadRegisterBoxed((Register)(i + offset));
                 }

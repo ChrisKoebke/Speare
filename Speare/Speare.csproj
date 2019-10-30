@@ -67,6 +67,7 @@
     <Compile Include="Parsing\Chars.cs" />
     <Compile Include="Parsing\TokenType.cs" />
     <Compile Include="Runtime\VM.cs" />
+    <Compile Include="Utility\StringExtensions.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
