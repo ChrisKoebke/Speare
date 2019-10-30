@@ -45,8 +45,9 @@ namespace Speare.Testing
                        .Constant(Register.LastResult, 199)
                        .Return();
 
-            var runtime = VM.FromBuilder(builder);
-            runtime.Run(methodIndex: 0).MoveNext();
+            var vm = VM.FromBuilder(builder);
+            vm.Allocate();
+            vm.Run(methodIndex: 0).MoveNext();
 
             /*Console.WriteLine(code);
             Console.WriteLine();

@@ -41,12 +41,20 @@ namespace Speare.Runtime
             get { return Stack.Peek(); }
         }
 
-        public int Size
+        public int MemoryAllocated
         {
-            get { return Ops.Length + Chrh.Length + Chrb.Length + Mth.Length; }
+            get { return ScopePool.Count * 130 + Stack.Count * 130 + Ops.Length + Chrh.Length + Chrb.Length + Mth.Length; }
         }
 
-        public unsafe Op ReadOp()
+        public void Allocate(int poolSize = 128)
+        {
+            for (int i = 0; i < poolSize; i++)
+            {
+                ScopePool.Push(new byte[26 * 5]);
+            }
+        }
+
+        public unsafe Op Next()
         {
             fixed (byte* pointer = Ops)
             {
@@ -319,7 +327,7 @@ namespace Speare.Runtime
 
             while (Address < Ops.Length)
             {
-                var op = ReadOp();
+                var op = Next();
 
                 switch (op)
                 {
