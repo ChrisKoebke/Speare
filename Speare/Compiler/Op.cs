@@ -9,8 +9,8 @@ namespace Speare.Compiler
     public enum Op : short
     {
         Null,
-        PushScope,
-        PopScope,
+        Push,
+        Pop,
         Constant,
         Set,
         GlobalRead,

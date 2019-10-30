@@ -36,15 +36,15 @@ namespace Speare.Compiler
             _labels.Clear();
         }
 
-        public OpBuilder PushScope()
+        public OpBuilder Push()
         {
-            _ops.Write((short)Op.PushScope);
+            _ops.Write((short)Op.Push);
             return this;
         }
 
-        public OpBuilder PopScope()
+        public OpBuilder Pop()
         {
-            _ops.Write((short)Op.PopScope);
+            _ops.Write((short)Op.Pop);
             return this;
         }
 

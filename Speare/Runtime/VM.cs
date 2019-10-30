@@ -16,16 +16,16 @@ namespace Speare.Runtime
     {
         public VM()
         {
-            OpPushScope();
+            OpPush();
         }
 
         public static IGameRuntime GameRuntime;
         public static ICoroutineRuntime CoroutineRuntime;
 
-        private byte[] _byteCode;
+        private byte[] ROM;
 
-        private Stack<byte[]> _stack = new Stack<byte[]>();
-        private Stack<byte[]> _scopePool = new Stack<byte[]>();
+        private Stack<byte[]> _scopes = new Stack<byte[]>();
+        private Stack<byte[]> _pool = new Stack<byte[]>();
         private Dictionary<int, object> _globals = new Dictionary<int, object>();
 
         private IEnumerator _coroutine;
@@ -37,29 +37,23 @@ namespace Speare.Runtime
         private int _chrhAddress;
         private int _chrbAddress;
 
-        private int _byteAddress;
+        private int _byteAddress = 0;
         public int ByteAddress { get => _byteAddress; set => _byteAddress = value; }
         public int Address { get => _byteAddress - _opAddress; set => _byteAddress = value + _opAddress; }
 
-        private TimeSpan _frameBudget;
+        private TimeSpan _frameBudget = TimeSpan.MaxValue;
         public TimeSpan FrameBudget { get => _frameBudget; set => _frameBudget = value; }
 
         public bool IsRunning { get; private set; }
 
-        public void Load(byte[] byteCode)
+        public byte[] RAM
         {
-            _byteCode = byteCode;
+            get { return _scopes.Peek(); }
+        }
 
-            fixed (byte* pointer = byteCode)
-            {
-                _opAddress      = *(int*)(pointer);
-                _mthAddress     = *(int*)(pointer + 4);
-                _chrhAddress    = *(int*)(pointer + 8);
-                _chrbAddress    = *(int*)(pointer + 12);
-
-                // Max executable address = Method header start
-                _maxOpAddress = _mthAddress;
-            }
+        public int MemoryAllocated
+        {
+            get { return _pool.Count * Constants.SizeOfScope + _scopes.Count * Constants.SizeOfScope + ROM.Length; }
         }
 
         public object this[string varName]
@@ -82,21 +76,27 @@ namespace Speare.Runtime
             }
         }
 
-        public byte[] Scope
+        public void Load(byte[] byteCode)
         {
-            get { return _stack.Peek(); }
-        }
+            ROM = byteCode;
 
-        public int MemoryAllocated
-        {
-            get { return _scopePool.Count * Constants.SizeOfScope + _stack.Count * Constants.SizeOfScope + _byteCode.Length; }
+            fixed (byte* pointer = ROM)
+            {
+                _opAddress      = *(int*)(pointer);
+                _mthAddress     = *(int*)(pointer + 4);
+                _chrhAddress    = *(int*)(pointer + 8);
+                _chrbAddress    = *(int*)(pointer + 12);
+
+                // Max executable address = Method header start
+                _maxOpAddress = _mthAddress;
+            }
         }
 
         public void Allocate(int poolSize = 128)
         {
             for (int i = 0; i < poolSize; i++)
             {
-                _scopePool.Push(new byte[Constants.SizeOfScope]);
+                _pool.Push(new byte[Constants.SizeOfScope]);
             }
         }
 
@@ -107,7 +107,7 @@ namespace Speare.Runtime
 
         public string ReadString(int stringIndex)
         {
-            fixed (byte* pointer = _byteCode)
+            fixed (byte* pointer = ROM)
             {
                 int startIndex = *P.StringStartIndex(pointer + _chrhAddress, stringIndex);
                 int length = *P.StringLength(pointer + _chrhAddress, stringIndex);
@@ -118,20 +118,20 @@ namespace Speare.Runtime
         
         public object ReadRegister(Register register)
         {
-            fixed (byte* scope = Scope)
+            fixed (byte* ram = RAM)
             {
-                switch (*P.DataType(scope, register))
+                switch (*P.DataType(ram, register))
                 {
                     case DataType.Bool:
-                        return *P.BoolValue(scope, register);
+                        return *P.BoolValue(ram, register);
                     case DataType.Int:
-                        return *P.IntValue(scope, register);
+                        return *P.IntValue(ram, register);
                     case DataType.Float:
-                        return *P.FloatValue(scope, register);
+                        return *P.FloatValue(ram, register);
                     case DataType.String:
-                        return ReadString(*P.IntValue(scope, register));
+                        return ReadString(*P.IntValue(ram, register));
                     case DataType.StringRef:
-                        return _globals[*P.IntValue(scope, register)];
+                        return _globals[*P.IntValue(ram, register)];
                     default:
                         return null;
                 }
@@ -146,7 +146,7 @@ namespace Speare.Runtime
 
         public IEnumerator RunCoroutine(int methodIndex)
         {
-            fixed (byte* pointer = _byteCode)
+            fixed (byte* pointer = ROM)
             {
                 Address = *P.MethodAddress(pointer + _mthAddress, methodIndex);
             }
@@ -170,11 +170,11 @@ namespace Speare.Runtime
 
                 switch (op)
                 {
-                    case Op.PushScope:
-                        OpPushScope();
+                    case Op.Push:
+                        OpPush();
                         break;
-                    case Op.PopScope:
-                        OpPopScope();
+                    case Op.Pop:
+                        OpPop();
                         break;
                     case Op.Constant:
                         OpConstant();
@@ -232,7 +232,7 @@ namespace Speare.Runtime
 
         private unsafe Op MoveNext()
         {
-            fixed (byte* pointer = _byteCode)
+            fixed (byte* pointer = ROM)
             {
                 var result = *(Op*)(pointer + _byteAddress);
                 _byteAddress += 2;
@@ -241,31 +241,31 @@ namespace Speare.Runtime
             }
         }
 
-        private void OpPushScope()
+        private void OpPush()
         {
-            if (_scopePool.Count > 0)
+            if (_pool.Count > 0)
             {
-                _stack.Push(_scopePool.Pop());
+                _scopes.Push(_pool.Pop());
                 return;
             }
 
-            _stack.Push(new byte[34 * 5]);
+            _scopes.Push(new byte[34 * 5]);
         }
 
-        private void OpPopScope()
+        private void OpPop()
         {
-            _scopePool.Push(_stack.Pop());
+            _pool.Push(_scopes.Pop());
         }
 
         private void OpConstant()
         {
-            fixed (byte* pointer = _byteCode)
-            fixed (byte* scope = Scope)
+            fixed (byte* pointer = ROM)
+            fixed (byte* ram = RAM)
             {
                 var register = *(Register*)(pointer + _byteAddress);
 
-                *P.DataType(scope, register) = *(DataType*)(pointer + _byteAddress + 1);
-                *P.IntValue(scope, register) = *(int*)(pointer + _byteAddress + 2);
+                *P.DataType(ram, register) = *(DataType*)(pointer + _byteAddress + 1);
+                *P.IntValue(ram, register) = *(int*)(pointer + _byteAddress + 2);
                 
                 _byteAddress += 6;
             }
@@ -273,8 +273,8 @@ namespace Speare.Runtime
 
         private void OpGlobalRead()
         {
-            fixed (byte* pointer = _byteCode)
-            fixed (byte* scope = Scope)
+            fixed (byte* pointer = ROM)
+            fixed (byte* ram = RAM)
             {
                 var register = *(Register*)(pointer + _byteAddress);
                 var hash = *(int*)(pointer + _byteAddress + 1);
@@ -283,37 +283,37 @@ namespace Speare.Runtime
                 var value = this[hash];
                 if (value == null)
                 {
-                    *P.DataType(scope, register) = DataType.Null;
+                    *P.DataType(ram, register) = DataType.Null;
                     return;
                 }
 
                 var type = value.GetType();
                 if (type == typeof(int))
                 {
-                    *P.DataType(scope, register) = DataType.Int;
-                    *P.IntValue(scope, register) = (int)value;
+                    *P.DataType(ram, register) = DataType.Int;
+                    *P.IntValue(ram, register) = (int)value;
                 }
                 if (type == typeof(float))
                 {
-                    *P.DataType(scope, register) = DataType.Float;
-                    *P.FloatValue(scope, register) = (float)value;
+                    *P.DataType(ram, register) = DataType.Float;
+                    *P.FloatValue(ram, register) = (float)value;
                 }
                 if (type == typeof(bool))
                 {
-                    *P.DataType(scope, register) = DataType.Bool;
-                    *P.BoolValue(scope, register) = (bool)value;
+                    *P.DataType(ram, register) = DataType.Bool;
+                    *P.BoolValue(ram, register) = (bool)value;
                 }
                 if (type == typeof(string))
                 {
-                    *P.DataType(scope, register) = DataType.StringRef;
-                    *P.IntValue(scope, register) = hash;
+                    *P.DataType(ram, register) = DataType.StringRef;
+                    *P.IntValue(ram, register) = hash;
                 }
             }
         }
 
         private void OpGlobalWrite()
         {
-            fixed (byte* pointer = _byteCode)
+            fixed (byte* pointer = ROM)
             {
                 var hash = *(int*)(pointer + _byteAddress);
                 var register = *(Register*)(pointer + _byteAddress + 4);
@@ -326,22 +326,22 @@ namespace Speare.Runtime
 
         private void OpSet()
         {
-            fixed (byte* pointer = _byteCode)
-            fixed (byte* scope = Scope)
+            fixed (byte* pointer = ROM)
+            fixed (byte* ram = RAM)
             {
                 var destination = *(Register*)(pointer + _byteAddress);
                 var source = *(Register*)(pointer + _byteAddress + 1);
 
                 _byteAddress += 2;
 
-                *P.DataType(scope, destination) = *P.DataType(scope, source);
-                *P.IntValue(scope, destination) = *P.IntValue(scope, source);
+                *P.DataType(ram, destination) = *P.DataType(ram, source);
+                *P.IntValue(ram, destination) = *P.IntValue(ram, source);
             }
         }
 
         private void OpJump()
         {
-            fixed (byte* pointer = _byteCode)
+            fixed (byte* pointer = ROM)
             {
                 Address = *(int*)(pointer + _byteAddress);
             }
@@ -349,11 +349,11 @@ namespace Speare.Runtime
 
         private void OpJumpIf()
         {
-            fixed (byte* pointer = _byteCode)
-            fixed (byte* scope = Scope)
+            fixed (byte* pointer = ROM)
+            fixed (byte* ram = RAM)
             {
-                if (*P.DataType(scope, Register.LastResult) != DataType.Bool ||
-                    *P.BoolValue(scope, Register.LastResult) == false)
+                if (*P.DataType(ram, Register.LastResult) != DataType.Bool ||
+                    *P.BoolValue(ram, Register.LastResult) == false)
                 {
                     _byteAddress += 4;
                     return;
@@ -365,28 +365,28 @@ namespace Speare.Runtime
 
         private void OpCall()
         {
-            fixed (byte* pointer = _byteCode)
+            fixed (byte* pointer = ROM)
             {
                 var methodIndex = *(short*)(pointer + _byteAddress);
                 var parameterCount = *P.MethodParameterCount(pointer + _mthAddress, methodIndex);
 
-                var previous = Scope;
-                OpPushScope();
+                var currentRam = RAM;
+                OpPush();
 
-                fixed (byte* scope = Scope)
-                fixed (byte* previosScope = previous)
+                fixed (byte* ram = RAM)
+                fixed (byte* previousRam = currentRam)
                 {
-                    *P.DataType(scope, Register.ReturnAddress) = DataType.Int;
-                    *P.IntValue(scope, Register.ReturnAddress) = _byteAddress;
+                    *P.DataType(ram, Register.ReturnAddress) = DataType.Int;
+                    *P.IntValue(ram, Register.ReturnAddress) = _byteAddress;
                     
-                    // TODO: Instead of copying the registers from the current scope the compiler
-                    //       should be responsible of creating a new scope and running the passed
+                    // TODO: Instead of copying the registers from the current ram the compiler
+                    //       should be responsible of creating a new ram and running the passed
                     //       parameter OPs
 
                     for (int i = 0; i < parameterCount; i++)
                     {
-                        *P.DataType(scope, Register.Param0, i) = *P.DataType(previosScope, Register.Param0, i);
-                        *P.IntValue(scope, Register.Param0, i) = *P.IntValue(previosScope, Register.Param0, i);
+                        *P.DataType(ram, Register.Param0, i) = *P.DataType(previousRam, Register.Param0, i);
+                        *P.IntValue(ram, Register.Param0, i) = *P.IntValue(previousRam, Register.Param0, i);
                     }
 
                     Address = *P.MethodAddress(pointer + _mthAddress, methodIndex);
@@ -396,15 +396,15 @@ namespace Speare.Runtime
 
         private void OpReturn()
         {
-            fixed (byte* previous = Scope)
+            fixed (byte* previous = RAM)
             {
-                OpPopScope();
+                OpPop();
 
-                fixed (byte* scope = Scope)
+                fixed (byte* ram = RAM)
                 {
                     // Copy last result
-                    *P.DataType(scope, Register.LastResult) = *P.DataType(previous, Register.LastResult);
-                    *P.IntValue(scope, Register.LastResult) = *P.IntValue(previous, Register.LastResult);
+                    *P.DataType(ram, Register.LastResult) = *P.DataType(previous, Register.LastResult);
+                    *P.IntValue(ram, Register.LastResult) = *P.IntValue(previous, Register.LastResult);
                 }
 
                 _byteAddress = *P.IntValue(previous, Register.ReturnAddress);
@@ -413,7 +413,7 @@ namespace Speare.Runtime
 
         private void OpInterop()
         {
-            fixed (byte* pointer = _byteCode)
+            fixed (byte* pointer = ROM)
             {
                 var hash = *(int*)(pointer + _byteAddress);
 
@@ -436,8 +436,8 @@ namespace Speare.Runtime
 
         private void OpArithmetic()
         {
-            fixed (byte* pointer = _byteCode)
-            fixed (byte* scope = Scope)
+            fixed (byte* pointer = ROM)
+            fixed (byte* ram = RAM)
             {
                 var a = *(Register*)(pointer + _byteAddress);
                 var b = *(Register*)(pointer + _byteAddress + 1);
@@ -446,15 +446,15 @@ namespace Speare.Runtime
                 _byteAddress += 3;
 
                 var function = Arithmetics.Get(
-                    *P.DataType(scope, a),
-                    *P.DataType(scope, b),
+                    *P.DataType(ram, a),
+                    *P.DataType(ram, b),
                     arithmetic
                 );
 
                 if (function == null)
                     return;
 
-                function(scope, a, b);
+                function(ram, a, b);
             }
         }
 
@@ -465,7 +465,7 @@ namespace Speare.Runtime
 
         private void OpDebugPrint()
         {
-            fixed (byte* pointer = _byteCode)
+            fixed (byte* pointer = ROM)
             {
                 var register = *(Register*)(pointer + _byteAddress);
                 _byteAddress++;
