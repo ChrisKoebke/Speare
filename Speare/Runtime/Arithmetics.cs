@@ -46,8 +46,8 @@ namespace Speare.Runtime
         {
             var hash = 0;
             hash |= (int)a;
-            hash |= (int)arithmetic << 8;
-            hash |= (int)b << 16;
+            hash |= (int)b << 8;
+            hash |= (int)arithmetic << 16;
             return hash;
         }
 

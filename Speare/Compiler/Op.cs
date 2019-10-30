@@ -15,7 +15,6 @@ namespace Speare.Compiler
         Set,
         GlobalRead,
         GlobalWrite,
-        Compare,
         Jump,
         JumpIf,
         Call,

@@ -80,7 +80,7 @@ namespace Speare.Testing
 
             var machine = VM.FromByteCode(Test1().Build());
             machine["TestVar"] = "From C#";
-            machine.Run(methodIndex: 0).MoveNext();
+            machine.Run(methodIndex: 0);
 
             Console.ReadLine();
         }

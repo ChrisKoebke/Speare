@@ -11,82 +11,82 @@ namespace Speare.Runtime
     {
         public static DataType* DataType(byte* scope, Register register)
         {
-            return (DataType*)(scope + (int)register * 5); // Registers are [byte:type] [int:data]
+            return (DataType*)(scope + (int)register * Constants.SizeOfRegister + Constants.OffsetRegisterType);
         }
 
         public static DataType* DataType(byte* scope, Register startRegister, int index)
         {
-            return (DataType*)(scope + ((int)startRegister + index) * 5); // Registers are [byte:type] [int:data]
+            return (DataType*)(scope + ((int)startRegister + index) * Constants.SizeOfRegister + Constants.OffsetRegisterType);
         }
 
         public static byte* Value(byte* scope, Register register)
         {
-            return scope + (int)register * 5 + 1; // Registers are [byte:type] [int:data]
+            return scope + (int)register * Constants.SizeOfRegister + Constants.OffsetRegisterData;
         }
 
         public static byte* Value(byte* scope, Register register, int index)
         {
-            return scope + ((int)register + index) * 5 + 1; // Registers are [byte:type] [int:data]
+            return scope + ((int)register + index) * Constants.SizeOfRegister + Constants.OffsetRegisterData;
         }
 
         public static int* IntValue(byte* scope, Register register)
         {
-            return (int*)(scope + (int)register * 5 + 1); // Registers are [byte:type] [int:data]
+            return (int*)(scope + (int)register * Constants.SizeOfRegister + Constants.OffsetRegisterData);
         }
 
         public static int* IntValue(byte* scope, Register register, int index)
         {
-            return (int*)(scope + ((int)register + index) * 5 + 1); // Registers are [byte:type] [int:data]
+            return (int*)(scope + ((int)register + index) * Constants.SizeOfRegister + Constants.OffsetRegisterData); 
         }
 
         public static short* ShortValue(byte* scope, Register register)
         {
-            return (short*)(scope + (int)register * 5 + 1); // Registers are [byte:type] [int:data]
+            return (short*)(scope + (int)register * Constants.SizeOfRegister + Constants.OffsetRegisterData);
         }
 
         public static short* ShortValue(byte* scope, Register register, int index)
         {
-            return (short*)(scope + ((int)register + index) * 5 + 1); // Registers are [byte:type] [int:data]
+            return (short*)(scope + ((int)register + index) * Constants.SizeOfRegister + Constants.OffsetRegisterData);
         }
 
         public static float* FloatValue(byte* scope, Register register)
         {
-            return (float*)(scope + (int)register * 5 + 1); // Registers are [byte:type] [int:data]
+            return (float*)(scope + (int)register * Constants.SizeOfRegister + Constants.OffsetRegisterData);
         }
 
         public static float* FloatValue(byte* scope, Register register, int index)
         {
-            return (float*)(scope + ((int)register + index) * 5 + 1); // Registers are [byte:type] [int:data]
+            return (float*)(scope + ((int)register + index) * Constants.SizeOfRegister + Constants.OffsetRegisterData);
         }
 
         public static bool* BoolValue(byte* scope, Register register)
         {
-            return (bool*)(scope + (int)register * 5 + 1); // Registers are [byte:type] [int:data]
+            return (bool*)(scope + (int)register * Constants.SizeOfRegister + Constants.OffsetRegisterData);
         }
 
         public static bool* BoolValue(byte* scope, Register register, int index)
         {
-            return (bool*)(scope + ((int)register + index) * 5 + 1); // Registers are [byte:type] [int:data]
+            return (bool*)(scope + ((int)register + index) * Constants.SizeOfRegister + Constants.OffsetRegisterData);
         }
 
         public static short* MethodAddress(byte* mth, int methodIndex)
         {
-            return (short*)(mth + methodIndex * 3); // Methods are [short:address] [byte:parameterCount]
+            return (short*)(mth + methodIndex * Constants.SizeOfMethod + Constants.OffsetMethodAddress);
         }
 
         public static byte* MethodParameterCount(byte* mth, int methodIndex)
         {
-            return mth + methodIndex * 3 + 2; // Methods are [short:address] [byte:parameterCount]
+            return mth + methodIndex * Constants.SizeOfMethod + Constants.OffsetMethodParameterCount;
         }
 
         public static int* StringStartIndex(byte* chrh, int stringIndex)
         {
-            return (int*)(chrh + stringIndex * 8); // String header is [int:startIndex] [int:length]
+            return (int*)(chrh + stringIndex * Constants.SizeOfString + Constants.OffsetStringStartIndex);
         }
 
         public static int* StringLength(byte* chrh, int stringIndex)
         {
-            return (int*)(chrh + stringIndex * 8 + 4); // String header is [int:startIndex] [int:length]
+            return (int*)(chrh + stringIndex * Constants.SizeOfString + Constants.OffsetStringLength);
         }
     }
 }

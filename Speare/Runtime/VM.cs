@@ -37,11 +37,14 @@ namespace Speare.Runtime
         private int _chrhAddress;
         private int _chrbAddress;
 
-        private int _address;
-        public int Address { get => _address; set => _address = value; }
+        private int _byteAddress;
+        public int ByteAddress { get => _byteAddress; set => _byteAddress = value; }
+        public int Address { get => _byteAddress - _opAddress; set => _byteAddress = value + _opAddress; }
 
         private TimeSpan _frameBudget;
         public TimeSpan FrameBudget { get => _frameBudget; set => _frameBudget = value; }
+
+        public bool IsRunning { get; private set; }
 
         public void Load(byte[] byteCode)
         {
@@ -54,9 +57,8 @@ namespace Speare.Runtime
                 _chrhAddress    = *(int*)(pointer + 8);
                 _chrbAddress    = *(int*)(pointer + 12);
 
-                // Subtract header size from methods header to get
-                // the maximum _address for the Run() method
-                _maxOpAddress = _mthAddress - _opAddress;
+                // Max executable address = Method header start
+                _maxOpAddress = _mthAddress;
             }
         }
 
@@ -87,29 +89,23 @@ namespace Speare.Runtime
 
         public int MemoryAllocated
         {
-            get { return _scopePool.Count * 170 + _stack.Count * 170 + _byteCode.Length; }
+            get { return _scopePool.Count * Constants.SizeOfScope + _stack.Count * Constants.SizeOfScope + _byteCode.Length; }
         }
 
         public void Allocate(int poolSize = 128)
         {
             for (int i = 0; i < poolSize; i++)
             {
-                _scopePool.Push(new byte[34 * 5]);
+                _scopePool.Push(new byte[Constants.SizeOfScope]);
             }
         }
 
-        public unsafe Op Next()
+        public void Jump(int address)
         {
-            fixed (byte* pointer = _byteCode)
-            {
-                var result = *(Op*)(pointer + _opAddress + _address);
-                _address += 2;
-
-                return result;
-            }
+            Address = address;
         }
 
-        public string ReadChrbString(int stringIndex)
+        public string ReadString(int stringIndex)
         {
             fixed (byte* pointer = _byteCode)
             {
@@ -120,7 +116,7 @@ namespace Speare.Runtime
             }
         }
         
-        public object ReadRegisterBoxed(Register register)
+        public object ReadRegister(Register register)
         {
             fixed (byte* scope = Scope)
             {
@@ -133,7 +129,7 @@ namespace Speare.Runtime
                     case DataType.Float:
                         return *P.FloatValue(scope, register);
                     case DataType.String:
-                        return ReadChrbString(*P.IntValue(scope, register));
+                        return ReadString(*P.IntValue(scope, register));
                     case DataType.StringRef:
                         return _globals[*P.IntValue(scope, register)];
                     default:
@@ -142,273 +138,35 @@ namespace Speare.Runtime
             }
         }
 
-        public void OpPushScope()
+        public void Run(int methodIndex)
         {
-            if (_scopePool.Count > 0)
-            {
-                _stack.Push(_scopePool.Pop());
-                return;
-            }
-
-            _stack.Push(new byte[34 * 5]);
+            var coroutine = RunCoroutine(methodIndex);
+            while (coroutine.MoveNext() && IsRunning);
         }
 
-        public void OpPopScope()
-        {
-            _scopePool.Push(_stack.Pop());
-        }
-
-        public void OpConstant()
-        {
-            fixed (byte* pointer = _byteCode)
-            fixed (byte* scope = Scope)
-            {
-                var register = *(Register*)(pointer + _opAddress + _address);
-
-                *P.DataType(scope, register) = *(DataType*)(pointer + _opAddress + _address + 1);
-                *P.IntValue(scope, register) = *(int*)(pointer + _opAddress + _address + 2);
-                
-                _address += 6;
-            }
-        }
-
-        public void OpGlobalRead()
-        {
-            fixed (byte* pointer = _byteCode)
-            fixed (byte* scope = Scope)
-            {
-                var register = *(Register*)(pointer + _opAddress + _address);
-                var hash = *(int*)(pointer + _opAddress + _address + 1);
-                _address += 5;
-
-                var value = this[hash];
-                if (value == null)
-                {
-                    *P.DataType(scope, register) = DataType.Null;
-                    return;
-                }
-
-                var type = value.GetType();
-                if (type == typeof(int))
-                {
-                    *P.DataType(scope, register) = DataType.Int;
-                    *P.IntValue(scope, register) = (int)value;
-                }
-                if (type == typeof(float))
-                {
-                    *P.DataType(scope, register) = DataType.Float;
-                    *P.FloatValue(scope, register) = (float)value;
-                }
-                if (type == typeof(bool))
-                {
-                    *P.DataType(scope, register) = DataType.Bool;
-                    *P.BoolValue(scope, register) = (bool)value;
-                }
-                if (type == typeof(string))
-                {
-                    *P.DataType(scope, register) = DataType.StringRef;
-                    *P.IntValue(scope, register) = hash;
-                }
-            }
-        }
-
-        public void OpGlobalWrite()
+        public IEnumerator RunCoroutine(int methodIndex)
         {
             fixed (byte* pointer = _byteCode)
             {
-                var hash = *(int*)(pointer + _opAddress + _address);
-                var register = *(Register*)(pointer + _opAddress + _address + 4);
-
-                _address += 5;
-
-                this[hash] = ReadRegisterBoxed(register);
+                Address = *P.MethodAddress(pointer + _mthAddress, methodIndex);
             }
+            return RunCoroutine();
         }
 
-        public void OpSet()
+        public void Run()
         {
-            fixed (byte* pointer = _byteCode)
-            fixed (byte* scope = Scope)
-            {
-                var destination = *(Register*)(pointer + _opAddress + _address);
-                var source = *(Register*)(pointer + _opAddress + _address + 1);
-
-                _address += 2;
-
-                *P.DataType(scope, destination) = *P.DataType(scope, source);
-                *P.IntValue(scope, destination) = *P.IntValue(scope, source);
-            }
+            var coroutine = RunCoroutine();
+            while (coroutine.MoveNext() && IsRunning);
         }
 
-        public void OpCompare()
+        public IEnumerator RunCoroutine()
         {
-            fixed (byte* pointer = _byteCode)
-            fixed (byte* scope = Scope)
-            {
-                var a = *(Register*)(pointer + _opAddress + _address);
-                var b = *(Register*)(pointer + _opAddress + _address + 1);
+            IsRunning = true;
 
-                _address += 2;
-
-                *P.DataType(scope, Register.LastResult) = DataType.Bool;
-                *P.BoolValue(scope, Register.LastResult) = *P.IntValue(scope, a) < *P.IntValue(scope, b);
-
-                // TODO: Implement comparison (for now we just skip the comparison byte)
-                _address += 1;
-            }
-        }
-
-        public void OpJump()
-        {
-            fixed (byte* pointer = _byteCode)
-            {
-                _address = *(int*)(pointer + _opAddress + _address);
-            }
-        }
-
-        public void OpJumpIf()
-        {
-            fixed (byte* pointer = _byteCode)
-            fixed (byte* scope = Scope)
-            {
-                if (*P.DataType(scope, Register.LastResult) != DataType.Bool ||
-                    *P.BoolValue(scope, Register.LastResult) == false)
-                {
-                    _address += 4;
-                    return;
-                }
-
-                _address = *(int*)(pointer + _opAddress + _address);
-            }
-        }
-
-        public void OpCall()
-        {
-            fixed (byte* pointer = _byteCode)
-            {
-                var methodIndex = *(short*)(pointer + _opAddress + _address);
-                var parameterCount = *P.MethodParameterCount(pointer + _mthAddress, methodIndex);
-
-                var previous = Scope;
-                OpPushScope();
-
-                fixed (byte* scope = Scope)
-                fixed (byte* previosScope = previous)
-                {
-                    *P.DataType(scope, Register.ReturnAddress) = DataType.Int;
-                    *P.IntValue(scope, Register.ReturnAddress) = _address;
-                    
-                    // TODO: Instead of copying the registers from the current scope the compiler
-                    //       should be responsible of creating a new scope and running the passed
-                    //       parameter OPs
-
-                    for (int i = 0; i < parameterCount; i++)
-                    {
-                        *P.DataType(scope, Register.Param0, i) = *P.DataType(previosScope, Register.Param0, i);
-                        *P.IntValue(scope, Register.Param0, i) = *P.IntValue(previosScope, Register.Param0, i);
-                    }
-
-                    _address = *P.MethodAddress(pointer + _mthAddress, methodIndex);
-                }
-            }
-        }
-
-        public void OpReturn()
-        {
-            fixed (byte* previous = Scope)
-            {
-                OpPopScope();
-
-                fixed (byte* scope = Scope)
-                {
-                    // Copy last result
-                    *P.DataType(scope, Register.LastResult) = *P.DataType(previous, Register.LastResult);
-                    *P.IntValue(scope, Register.LastResult) = *P.IntValue(previous, Register.LastResult);
-                }
-
-                _address = *P.IntValue(previous, Register.ReturnAddress);
-            }
-        }
-
-        public void OpInterop()
-        {
-            fixed (byte* pointer = _byteCode)
-            {
-                var hash = *(int*)(pointer + _opAddress + _address);
-
-                var info = Interop.Methods[hash];
-                var parameters = Interop.ParameterPool[hash];
-                var offset = (byte)Register.Param0;
-
-                for (byte i = 0; i < parameters.Length; i++)
-                {
-                    parameters[i] = ReadRegisterBoxed((Register)(i + offset));
-                }
-
-                var coroutine = info.Invoke(null, parameters) as IEnumerator;
-                if (coroutine == null)
-                    return;
-
-                _coroutine = coroutine;
-            }
-        }
-
-        public void OpArithmetic()
-        {
-            fixed (byte* pointer = _byteCode)
-            fixed (byte* scope = Scope)
-            {
-                var a = *(Register*)(pointer + _opAddress + _address);
-                var b = *(Register*)(pointer + _opAddress + _address + 1);
-                var arithmetic = *(Arithmetic*)(pointer + _opAddress + _address + 2);
-
-                _address += 3;
-
-                var function = Arithmetics.Get(
-                    *P.DataType(scope, a),
-                    *P.DataType(scope, b),
-                    arithmetic
-                );
-
-                if (function == null)
-                    return;
-
-                function(scope, a, b);
-            }
-        }
-
-        public void OpExit()
-        {
-            _address = _mthAddress;
-        }
-
-        public void OpDebugPrint()
-        {
-            fixed (byte* pointer = _byteCode)
-            {
-                var register = *(Register*)(pointer + _opAddress + _address);
-                _address++;
-
-                Console.WriteLine(ReadRegisterBoxed(register));
-            }
-        }
-
-        public IEnumerator Run(int methodIndex)
-        {
-            fixed (byte* pointer = _byteCode)
-            {
-                _address = *P.MethodAddress(pointer + _mthAddress, methodIndex);
-            }
-            return Run();
-        }
-
-        public IEnumerator Run()
-        {
             var timer = Stopwatch.StartNew();
-
-            while (Address > 0 && Address < _maxOpAddress)
+            while (_byteAddress > _opAddress && _byteAddress < _maxOpAddress)
             {
-                var op = Next();
+                var op = MoveNext();
 
                 switch (op)
                 {
@@ -429,9 +187,6 @@ namespace Speare.Runtime
                         break;
                     case Op.Set:
                         OpSet();
-                        break;
-                    case Op.Compare:
-                        OpCompare();
                         break;
                     case Op.Call:
                         OpCall();
@@ -470,6 +225,252 @@ namespace Speare.Runtime
                     yield return CoroutineRuntime.WaitForEndOfFrame();
                     timer.Restart();
                 }
+            }
+
+            IsRunning = false;
+        }
+
+        private unsafe Op MoveNext()
+        {
+            fixed (byte* pointer = _byteCode)
+            {
+                var result = *(Op*)(pointer + _byteAddress);
+                _byteAddress += 2;
+
+                return result;
+            }
+        }
+
+        private void OpPushScope()
+        {
+            if (_scopePool.Count > 0)
+            {
+                _stack.Push(_scopePool.Pop());
+                return;
+            }
+
+            _stack.Push(new byte[34 * 5]);
+        }
+
+        private void OpPopScope()
+        {
+            _scopePool.Push(_stack.Pop());
+        }
+
+        private void OpConstant()
+        {
+            fixed (byte* pointer = _byteCode)
+            fixed (byte* scope = Scope)
+            {
+                var register = *(Register*)(pointer + _byteAddress);
+
+                *P.DataType(scope, register) = *(DataType*)(pointer + _byteAddress + 1);
+                *P.IntValue(scope, register) = *(int*)(pointer + _byteAddress + 2);
+                
+                _byteAddress += 6;
+            }
+        }
+
+        private void OpGlobalRead()
+        {
+            fixed (byte* pointer = _byteCode)
+            fixed (byte* scope = Scope)
+            {
+                var register = *(Register*)(pointer + _byteAddress);
+                var hash = *(int*)(pointer + _byteAddress + 1);
+                _byteAddress += 5;
+
+                var value = this[hash];
+                if (value == null)
+                {
+                    *P.DataType(scope, register) = DataType.Null;
+                    return;
+                }
+
+                var type = value.GetType();
+                if (type == typeof(int))
+                {
+                    *P.DataType(scope, register) = DataType.Int;
+                    *P.IntValue(scope, register) = (int)value;
+                }
+                if (type == typeof(float))
+                {
+                    *P.DataType(scope, register) = DataType.Float;
+                    *P.FloatValue(scope, register) = (float)value;
+                }
+                if (type == typeof(bool))
+                {
+                    *P.DataType(scope, register) = DataType.Bool;
+                    *P.BoolValue(scope, register) = (bool)value;
+                }
+                if (type == typeof(string))
+                {
+                    *P.DataType(scope, register) = DataType.StringRef;
+                    *P.IntValue(scope, register) = hash;
+                }
+            }
+        }
+
+        private void OpGlobalWrite()
+        {
+            fixed (byte* pointer = _byteCode)
+            {
+                var hash = *(int*)(pointer + _byteAddress);
+                var register = *(Register*)(pointer + _byteAddress + 4);
+
+                _byteAddress += 5;
+
+                this[hash] = ReadRegister(register);
+            }
+        }
+
+        private void OpSet()
+        {
+            fixed (byte* pointer = _byteCode)
+            fixed (byte* scope = Scope)
+            {
+                var destination = *(Register*)(pointer + _byteAddress);
+                var source = *(Register*)(pointer + _byteAddress + 1);
+
+                _byteAddress += 2;
+
+                *P.DataType(scope, destination) = *P.DataType(scope, source);
+                *P.IntValue(scope, destination) = *P.IntValue(scope, source);
+            }
+        }
+
+        private void OpJump()
+        {
+            fixed (byte* pointer = _byteCode)
+            {
+                Address = *(int*)(pointer + _byteAddress);
+            }
+        }
+
+        private void OpJumpIf()
+        {
+            fixed (byte* pointer = _byteCode)
+            fixed (byte* scope = Scope)
+            {
+                if (*P.DataType(scope, Register.LastResult) != DataType.Bool ||
+                    *P.BoolValue(scope, Register.LastResult) == false)
+                {
+                    _byteAddress += 4;
+                    return;
+                }
+
+                Address = *(int*)(pointer + _byteAddress);
+            }
+        }
+
+        private void OpCall()
+        {
+            fixed (byte* pointer = _byteCode)
+            {
+                var methodIndex = *(short*)(pointer + _byteAddress);
+                var parameterCount = *P.MethodParameterCount(pointer + _mthAddress, methodIndex);
+
+                var previous = Scope;
+                OpPushScope();
+
+                fixed (byte* scope = Scope)
+                fixed (byte* previosScope = previous)
+                {
+                    *P.DataType(scope, Register.ReturnAddress) = DataType.Int;
+                    *P.IntValue(scope, Register.ReturnAddress) = _byteAddress;
+                    
+                    // TODO: Instead of copying the registers from the current scope the compiler
+                    //       should be responsible of creating a new scope and running the passed
+                    //       parameter OPs
+
+                    for (int i = 0; i < parameterCount; i++)
+                    {
+                        *P.DataType(scope, Register.Param0, i) = *P.DataType(previosScope, Register.Param0, i);
+                        *P.IntValue(scope, Register.Param0, i) = *P.IntValue(previosScope, Register.Param0, i);
+                    }
+
+                    Address = *P.MethodAddress(pointer + _mthAddress, methodIndex);
+                }
+            }
+        }
+
+        private void OpReturn()
+        {
+            fixed (byte* previous = Scope)
+            {
+                OpPopScope();
+
+                fixed (byte* scope = Scope)
+                {
+                    // Copy last result
+                    *P.DataType(scope, Register.LastResult) = *P.DataType(previous, Register.LastResult);
+                    *P.IntValue(scope, Register.LastResult) = *P.IntValue(previous, Register.LastResult);
+                }
+
+                _byteAddress = *P.IntValue(previous, Register.ReturnAddress);
+            }
+        }
+
+        private void OpInterop()
+        {
+            fixed (byte* pointer = _byteCode)
+            {
+                var hash = *(int*)(pointer + _byteAddress);
+
+                var info = Interop.Methods[hash];
+                var parameters = Interop.ParameterPool[hash];
+                var offset = (byte)Register.Param0;
+
+                for (byte i = 0; i < parameters.Length; i++)
+                {
+                    parameters[i] = ReadRegister((Register)(i + offset));
+                }
+
+                var coroutine = info.Invoke(null, parameters) as IEnumerator;
+                if (coroutine == null)
+                    return;
+
+                _coroutine = coroutine;
+            }
+        }
+
+        private void OpArithmetic()
+        {
+            fixed (byte* pointer = _byteCode)
+            fixed (byte* scope = Scope)
+            {
+                var a = *(Register*)(pointer + _byteAddress);
+                var b = *(Register*)(pointer + _byteAddress + 1);
+                var arithmetic = *(Arithmetic*)(pointer + _byteAddress + 2);
+
+                _byteAddress += 3;
+
+                var function = Arithmetics.Get(
+                    *P.DataType(scope, a),
+                    *P.DataType(scope, b),
+                    arithmetic
+                );
+
+                if (function == null)
+                    return;
+
+                function(scope, a, b);
+            }
+        }
+
+        private void OpExit()
+        {
+            _byteAddress = _maxOpAddress;
+        }
+
+        private void OpDebugPrint()
+        {
+            fixed (byte* pointer = _byteCode)
+            {
+                var register = *(Register*)(pointer + _byteAddress);
+                _byteAddress++;
+
+                Console.WriteLine(ReadRegister(register));
             }
         }
 

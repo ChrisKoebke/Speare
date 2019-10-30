@@ -223,19 +223,19 @@ namespace Speare.Compiler
             fixed (byte* pointer = result)
             {
                 // Op address
-                *(int*)(pointer) = 16;
+                *(int*)(pointer) = Constants.SizeOfHeader;
                 // Mth address
-                *(int*)(pointer + 4) = 16 + _ops.Position;
+                *(int*)(pointer + 4) = Constants.SizeOfHeader + _ops.Position;
                 // Chrh address
-                *(int*)(pointer + 8) = 16 + _ops.Position + _mth.Position;
+                *(int*)(pointer + 8) = Constants.SizeOfHeader + _ops.Position + _mth.Position;
                 // Chrb address
-                *(int*)(pointer + 12) = 16 + _ops.Position + _mth.Position + _chrh.Position;
+                *(int*)(pointer + 12) = Constants.SizeOfHeader + _ops.Position + _mth.Position + _chrh.Position;
             }
 
-            Buffer.BlockCopy(_ops.Data, 0, result, 16, _ops.Position);
-            Buffer.BlockCopy(_mth.Data, 0, result, 16 + _ops.Position, _mth.Position);
-            Buffer.BlockCopy(_chrh.Data, 0, result, 16 + _ops.Position + _mth.Position, _chrh.Position);
-            Buffer.BlockCopy(_chrb.Data, 0, result, 16 + _ops.Position + _mth.Position + _chrh.Position, _chrb.Position);
+            Buffer.BlockCopy(_ops.Data, 0, result, Constants.SizeOfHeader, _ops.Position);
+            Buffer.BlockCopy(_mth.Data, 0, result, Constants.SizeOfHeader + _ops.Position, _mth.Position);
+            Buffer.BlockCopy(_chrh.Data, 0, result, Constants.SizeOfHeader + _ops.Position + _mth.Position, _chrh.Position);
+            Buffer.BlockCopy(_chrb.Data, 0, result, Constants.SizeOfHeader + _ops.Position + _mth.Position + _chrh.Position, _chrb.Position);
         }
 
         public byte[] Build()
