@@ -335,40 +335,45 @@ namespace Speare.Runtime
             }
         }
 
-        public void OpAdd()
+        public void OpArithmetic()
         {
-            fixed (byte* pointer = Ops)
+            fixed (byte* ops = Ops)
             fixed (byte* scope = Scope)
             {
-                var registerA = *(Register*)(pointer + Address);
-                var registerB = *(Register*)(pointer + Address + 1);
+                var a = *(Register*)(ops + Address);
+                var b = *(Register*)(ops + Address + 2);
+                var arithmetic = *(Arithmetic*)(ops + Address + 1);
 
-                var typeA = *P.DataType(scope, registerA);
-                var typeB = *P.DataType(scope, registerB);
+                Address += 3;
 
-                Address += 2;
-                
+                // TODO: Implement other arithmetics too. Currently only add is supported
+                if (arithmetic != Arithmetic.Add)
+                    return;
+
+                var typeA = *P.DataType(scope, a);
+                var typeB = *P.DataType(scope, b);
+                                
                 // TODO: Type table for faster operator look up
 
                 if (typeA == DataType.Int && typeB == DataType.Int)
                 {
                     *P.DataType(scope, Register.LastResult) = DataType.Int;
-                    *P.IntValue(scope, Register.LastResult) = *P.IntValue(scope, registerA) + *P.IntValue(scope, registerB);
+                    *P.IntValue(scope, Register.LastResult) = *P.IntValue(scope, a) + *P.IntValue(scope, b);
                 }
                 else if (typeA == DataType.Int && typeB == DataType.Float)
                 {
                     *P.DataType(scope, Register.LastResult) = DataType.Float;
-                    *P.FloatValue(scope, Register.LastResult) = *P.IntValue(scope, registerA) + *P.FloatValue(scope, registerB);
+                    *P.FloatValue(scope, Register.LastResult) = *P.IntValue(scope, a) + *P.FloatValue(scope, b);
                 }
                 else if (typeA == DataType.Float && typeB == DataType.Int)
                 {
                     *P.DataType(scope, Register.LastResult) = DataType.Float;
-                    *P.FloatValue(scope, Register.LastResult) = *P.FloatValue(scope, registerA) + *P.IntValue(scope, registerB);
+                    *P.FloatValue(scope, Register.LastResult) = *P.FloatValue(scope, a) + *P.IntValue(scope, b);
                 }
                 else if (typeA == DataType.Float && typeB == DataType.Float)
                 {
                     *P.DataType(scope, Register.LastResult) = DataType.Float;
-                    *P.FloatValue(scope, Register.LastResult) = *P.FloatValue(scope, registerA) + *P.FloatValue(scope, registerB);
+                    *P.FloatValue(scope, Register.LastResult) = *P.FloatValue(scope, a) + *P.FloatValue(scope, b);
                 }
             }
         }
@@ -444,22 +449,10 @@ namespace Speare.Runtime
                     case Op.JumpIf:
                         OpJumpIf();
                         break;
-                    case Op.Add:
-                        OpAdd();
+                    case Op.Arithmetic:
+                        OpArithmetic();
                         break;
-                    case Op.Subtract:
-                        break;
-                    case Op.Divide:
-                        break;
-                    case Op.Multiply:
-                        break;
-                    case Op.Modulo:
-                        break;
-                    case Op.Equal:
-                        break;
-                    case Op.Not:
-                        break;
-                    case Op.Method:
+                    case Op.MethodDefinition:
                     case Op.Exit:
                         OpExit();
                         break;

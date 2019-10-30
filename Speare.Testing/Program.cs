@@ -27,7 +27,7 @@ namespace Speare.Testing
                 .Constant(Register.R1, 5)
                 .Label(":loop")
                 .Constant(Register.R2, 1)
-                .Add(Register.R0, Register.R2)
+                .Arithmetic(Register.R0, Arithmetic.Add, Register.R2)
                 .Set(Register.R0, Register.LastResult)
                 .DebugPrint(Register.R0)
                 .Compare(Register.R0, Register.R1, Comparison.S)
@@ -53,7 +53,7 @@ namespace Speare.Testing
             .Method()
                 .GlobalRead(Register.Local0, "TestVar")
                 .Constant(Register.Local1, 100)
-                .Add(Register.Local0, Register.Local1)
+                .Arithmetic(Register.Local0, Arithmetic.Add, Register.Local1)
                 .GlobalWrite("TestVar", Register.LastResult);
         }
 

@@ -109,7 +109,7 @@ namespace Speare.Compilation
 
         public OpBuilder Method(int parameterCount = 0)
         {
-            _ops.Write((short)Op.Method);
+            _ops.Write((short)Op.MethodDefinition);
 
             _mth.Write((short)_ops.Position);
             _mth.Write((byte)parameterCount);
@@ -172,10 +172,11 @@ namespace Speare.Compilation
             return this;
         }
 
-        public OpBuilder Add(Register regA, Register regB)
+        public OpBuilder Arithmetic(Register regA, Arithmetic op, Register regB)
         {
-            _ops.Write((short)Op.Add);
+            _ops.Write((short)Op.Arithmetic);
             _ops.Write((byte)regA);
+            _ops.Write((byte)op);
             _ops.Write((byte)regB);
             return this;
         }
