@@ -382,8 +382,7 @@ namespace Speare.Runtime
                     yield return Coroutine;
                     Coroutine = null;
                 }
-
-                if (timer.Elapsed >= FrameBudget && CoroutineRuntime != null)
+                else if (timer.Elapsed >= FrameBudget && CoroutineRuntime != null)
                 {
                     yield return CoroutineRuntime.WaitForEndOfFrame();
                     timer.Restart();
