@@ -80,12 +80,12 @@ namespace Speare.Runtime
         {
             ROM = byteCode;
 
-            fixed (byte* pointer = ROM)
+            fixed (byte* rom = ROM)
             {
-                _opAddress      = *(int*)(pointer);
-                _mthAddress     = *(int*)(pointer + 4);
-                _chrhAddress    = *(int*)(pointer + 8);
-                _chrbAddress    = *(int*)(pointer + 12);
+                _opAddress      = *(int*)(rom);
+                _mthAddress     = *(int*)(rom + 4);
+                _chrhAddress    = *(int*)(rom + 8);
+                _chrbAddress    = *(int*)(rom + 12);
 
                 // Max executable address = Method header start
                 _maxOpAddress = _mthAddress;
@@ -107,12 +107,12 @@ namespace Speare.Runtime
 
         public string ReadString(int stringIndex)
         {
-            fixed (byte* pointer = ROM)
+            fixed (byte* rom = ROM)
             {
-                int startIndex = *P.StringStartIndex(pointer + _chrhAddress, stringIndex);
-                int length = *P.StringLength(pointer + _chrhAddress, stringIndex);
+                int startIndex = *P.StringStartIndex(rom + _chrhAddress, stringIndex);
+                int length = *P.StringLength(rom + _chrhAddress, stringIndex);
 
-                return new string((sbyte*)(pointer + _chrbAddress), startIndex, length, Encoding.Default);
+                return new string((sbyte*)(rom + _chrbAddress), startIndex, length, Encoding.Default);
             }
         }
         
@@ -146,9 +146,9 @@ namespace Speare.Runtime
 
         public IEnumerator RunCoroutine(int methodIndex)
         {
-            fixed (byte* pointer = ROM)
+            fixed (byte* rom = ROM)
             {
-                Address = *P.MethodAddress(pointer + _mthAddress, methodIndex);
+                Address = *P.MethodAddress(rom + _mthAddress, methodIndex);
             }
             return RunCoroutine();
         }
@@ -232,9 +232,9 @@ namespace Speare.Runtime
 
         private unsafe Op MoveNext()
         {
-            fixed (byte* pointer = ROM)
+            fixed (byte* rom = ROM)
             {
-                var result = *(Op*)(pointer + _byteAddress);
+                var result = *(Op*)(rom + _byteAddress);
                 _byteAddress += 2;
 
                 return result;
@@ -259,13 +259,13 @@ namespace Speare.Runtime
 
         private void OpConstant()
         {
-            fixed (byte* pointer = ROM)
+            fixed (byte* rom = ROM)
             fixed (byte* ram = RAM)
             {
-                var register = *(Register*)(pointer + _byteAddress);
+                var register = *(Register*)(rom + _byteAddress);
 
-                *P.DataType(ram, register) = *(DataType*)(pointer + _byteAddress + 1);
-                *P.IntValue(ram, register) = *(int*)(pointer + _byteAddress + 2);
+                *P.DataType(ram, register) = *(DataType*)(rom + _byteAddress + 1);
+                *P.IntValue(ram, register) = *(int*)(rom + _byteAddress + 2);
                 
                 _byteAddress += 6;
             }
@@ -273,11 +273,11 @@ namespace Speare.Runtime
 
         private void OpGlobalRead()
         {
-            fixed (byte* pointer = ROM)
+            fixed (byte* rom = ROM)
             fixed (byte* ram = RAM)
             {
-                var register = *(Register*)(pointer + _byteAddress);
-                var hash = *(int*)(pointer + _byteAddress + 1);
+                var register = *(Register*)(rom + _byteAddress);
+                var hash = *(int*)(rom + _byteAddress + 1);
                 _byteAddress += 5;
 
                 var value = this[hash];
@@ -313,10 +313,10 @@ namespace Speare.Runtime
 
         private void OpGlobalWrite()
         {
-            fixed (byte* pointer = ROM)
+            fixed (byte* rom = ROM)
             {
-                var hash = *(int*)(pointer + _byteAddress);
-                var register = *(Register*)(pointer + _byteAddress + 4);
+                var hash = *(int*)(rom + _byteAddress);
+                var register = *(Register*)(rom + _byteAddress + 4);
 
                 _byteAddress += 5;
 
@@ -326,11 +326,11 @@ namespace Speare.Runtime
 
         private void OpSet()
         {
-            fixed (byte* pointer = ROM)
+            fixed (byte* rom = ROM)
             fixed (byte* ram = RAM)
             {
-                var destination = *(Register*)(pointer + _byteAddress);
-                var source = *(Register*)(pointer + _byteAddress + 1);
+                var destination = *(Register*)(rom + _byteAddress);
+                var source = *(Register*)(rom + _byteAddress + 1);
 
                 _byteAddress += 2;
 
@@ -341,15 +341,15 @@ namespace Speare.Runtime
 
         private void OpJump()
         {
-            fixed (byte* pointer = ROM)
+            fixed (byte* rom = ROM)
             {
-                Address = *(int*)(pointer + _byteAddress);
+                Address = *(int*)(rom + _byteAddress);
             }
         }
 
         private void OpJumpIf()
         {
-            fixed (byte* pointer = ROM)
+            fixed (byte* rom = ROM)
             fixed (byte* ram = RAM)
             {
                 if (*P.DataType(ram, Register.LastResult) != DataType.Bool ||
@@ -359,16 +359,16 @@ namespace Speare.Runtime
                     return;
                 }
 
-                Address = *(int*)(pointer + _byteAddress);
+                Address = *(int*)(rom + _byteAddress);
             }
         }
 
         private void OpCall()
         {
-            fixed (byte* pointer = ROM)
+            fixed (byte* rom = ROM)
             {
-                var methodIndex = *(short*)(pointer + _byteAddress);
-                var parameterCount = *P.MethodParameterCount(pointer + _mthAddress, methodIndex);
+                var methodIndex = *(short*)(rom + _byteAddress);
+                var parameterCount = *P.MethodParameterCount(rom + _mthAddress, methodIndex);
 
                 var currentRam = RAM;
                 OpPush();
@@ -389,7 +389,7 @@ namespace Speare.Runtime
                         *P.IntValue(ram, Register.Param0, i) = *P.IntValue(previousRam, Register.Param0, i);
                     }
 
-                    Address = *P.MethodAddress(pointer + _mthAddress, methodIndex);
+                    Address = *P.MethodAddress(rom + _mthAddress, methodIndex);
                 }
             }
         }
@@ -413,9 +413,9 @@ namespace Speare.Runtime
 
         private void OpInterop()
         {
-            fixed (byte* pointer = ROM)
+            fixed (byte* rom = ROM)
             {
-                var hash = *(int*)(pointer + _byteAddress);
+                var hash = *(int*)(rom + _byteAddress);
 
                 var info = Interop.Methods[hash];
                 var parameters = Interop.ParameterPool[hash];
@@ -436,12 +436,12 @@ namespace Speare.Runtime
 
         private void OpArithmetic()
         {
-            fixed (byte* pointer = ROM)
+            fixed (byte* rom = ROM)
             fixed (byte* ram = RAM)
             {
-                var a = *(Register*)(pointer + _byteAddress);
-                var b = *(Register*)(pointer + _byteAddress + 1);
-                var arithmetic = *(Arithmetic*)(pointer + _byteAddress + 2);
+                var a = *(Register*)(rom + _byteAddress);
+                var b = *(Register*)(rom + _byteAddress + 1);
+                var arithmetic = *(Arithmetic*)(rom + _byteAddress + 2);
 
                 _byteAddress += 3;
 
@@ -465,9 +465,9 @@ namespace Speare.Runtime
 
         private void OpDebugPrint()
         {
-            fixed (byte* pointer = ROM)
+            fixed (byte* rom = ROM)
             {
-                var register = *(Register*)(pointer + _byteAddress);
+                var register = *(Register*)(rom + _byteAddress);
                 _byteAddress++;
 
                 Console.WriteLine(ReadRegister(register));
