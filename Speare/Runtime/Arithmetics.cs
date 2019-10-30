@@ -11,6 +11,29 @@ namespace Speare.Runtime
 
     public static unsafe class Arithmetics
     {
+        public static Dictionary<int, ArithmeticOperator> Table = new Dictionary<int, ArithmeticOperator>
+        {
+            [Hash(DataType.Int, DataType.Int, Arithmetic.Add)] = Add.IntInt,
+            [Hash(DataType.Int, DataType.Float, Arithmetic.Add)] = Add.IntFloat,
+            [Hash(DataType.Float, DataType.Int, Arithmetic.Add)] = Add.FloatInt,
+            [Hash(DataType.Float, DataType.Float, Arithmetic.Add)] = Add.FloatInt,
+
+            [Hash(DataType.Int, DataType.Int, Arithmetic.Subtract)] = Subtract.IntInt,
+            [Hash(DataType.Int, DataType.Float, Arithmetic.Subtract)] = Subtract.IntFloat,
+            [Hash(DataType.Float, DataType.Int, Arithmetic.Subtract)] = Subtract.FloatInt,
+            [Hash(DataType.Float, DataType.Float, Arithmetic.Subtract)] = Subtract.FloatInt,
+
+            [Hash(DataType.Int, DataType.Int, Arithmetic.Multiply)] = Multiply.IntInt,
+            [Hash(DataType.Int, DataType.Float, Arithmetic.Multiply)] = Multiply.IntFloat,
+            [Hash(DataType.Float, DataType.Int, Arithmetic.Multiply)] = Multiply.FloatInt,
+            [Hash(DataType.Float, DataType.Float, Arithmetic.Multiply)] = Multiply.FloatInt,
+
+            [Hash(DataType.Int, DataType.Int, Arithmetic.Divide)] = Divide.IntInt,
+            [Hash(DataType.Int, DataType.Float, Arithmetic.Divide)] = Divide.IntFloat,
+            [Hash(DataType.Float, DataType.Int, Arithmetic.Divide)] = Divide.FloatInt,
+            [Hash(DataType.Float, DataType.Float, Arithmetic.Divide)] = Divide.FloatInt
+        };
+        
         public static int Hash(DataType a, DataType b, Arithmetic arithmetic)
         {
             var hash = 0;
@@ -18,6 +41,13 @@ namespace Speare.Runtime
             hash |= (int)arithmetic << 8;
             hash |= (int)b << 16;
             return hash;
+        }
+
+        public static ArithmeticOperator Get(DataType a, DataType b, Arithmetic arithmetic)
+        {
+            ArithmeticOperator result;
+            Table.TryGetValue(Hash(a, b, arithmetic), out result);
+            return result;
         }
 
         public static class Add

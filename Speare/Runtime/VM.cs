@@ -28,28 +28,6 @@ namespace Speare.Runtime
         private Stack<byte[]> _scopePool = new Stack<byte[]>();
 
         private Dictionary<int, object> _globals = new Dictionary<int, object>();
-        private Dictionary<int, ArithmeticOperator> _arithmeticsTable = new Dictionary<int, ArithmeticOperator>
-        {
-            [Arithmetics.Hash(DataType.Int, DataType.Int, Arithmetic.Add)]      = Arithmetics.Add.IntInt,
-            [Arithmetics.Hash(DataType.Int, DataType.Float, Arithmetic.Add)]    = Arithmetics.Add.IntFloat,
-            [Arithmetics.Hash(DataType.Float, DataType.Int, Arithmetic.Add)]    = Arithmetics.Add.FloatInt,
-            [Arithmetics.Hash(DataType.Float, DataType.Float, Arithmetic.Add)]  = Arithmetics.Add.FloatInt,
-
-            [Arithmetics.Hash(DataType.Int, DataType.Int, Arithmetic.Subtract)] = Arithmetics.Subtract.IntInt,
-            [Arithmetics.Hash(DataType.Int, DataType.Float, Arithmetic.Subtract)] = Arithmetics.Subtract.IntFloat,
-            [Arithmetics.Hash(DataType.Float, DataType.Int, Arithmetic.Subtract)] = Arithmetics.Subtract.FloatInt,
-            [Arithmetics.Hash(DataType.Float, DataType.Float, Arithmetic.Subtract)] = Arithmetics.Subtract.FloatInt,
-
-            [Arithmetics.Hash(DataType.Int, DataType.Int, Arithmetic.Multiply)] = Arithmetics.Multiply.IntInt,
-            [Arithmetics.Hash(DataType.Int, DataType.Float, Arithmetic.Multiply)] = Arithmetics.Multiply.IntFloat,
-            [Arithmetics.Hash(DataType.Float, DataType.Int, Arithmetic.Multiply)] = Arithmetics.Multiply.FloatInt,
-            [Arithmetics.Hash(DataType.Float, DataType.Float, Arithmetic.Multiply)] = Arithmetics.Multiply.FloatInt,
-
-            [Arithmetics.Hash(DataType.Int, DataType.Int, Arithmetic.Divide)] = Arithmetics.Divide.IntInt,
-            [Arithmetics.Hash(DataType.Int, DataType.Float, Arithmetic.Divide)] = Arithmetics.Divide.IntFloat,
-            [Arithmetics.Hash(DataType.Float, DataType.Int, Arithmetic.Divide)] = Arithmetics.Divide.FloatInt,
-            [Arithmetics.Hash(DataType.Float, DataType.Float, Arithmetic.Divide)] = Arithmetics.Divide.FloatInt
-        };
 
         public byte[] Ops;
         public byte[] Chrh;
@@ -368,8 +346,11 @@ namespace Speare.Runtime
 
                 Address += 3;
 
-                var hash = Arithmetics.Hash(*P.DataType(scope, a), *P.DataType(scope, b), arithmetic);
-                var function = _arithmeticsTable[hash];
+                var function = Arithmetics.Get(
+                    *P.DataType(scope, a),
+                    *P.DataType(scope, b),
+                    arithmetic
+                );
 
                 function(scope, a, b);
             }
