@@ -60,16 +60,21 @@ namespace Speare.Testing
 
         static void TokenizerTest()
         {
-            var code = "{\n Tobi: \"Hello this is a test\"\nTestMethod(1, 2)\n}\nTestMethod(a, b)\n{\n}";
+            var code = "{\n TestMethod(1, 2)\n}\nTestMethod(a, b)\n{\n}";
 
             var tokens = Lexer.Tokenize(code);
             foreach (var token in tokens)
             {
-                if (token.Type == TokenType.EOF)
+                if (token.Type == TokenType.EndOfFile)
                     break;
 
                 Console.WriteLine(token.ToFormattedString());
             }
+
+            OpBuilder ops;
+            List<CompilerError> errors;
+
+            Compiler.Compiler.Compile(tokens, out ops, out errors);
 
             Console.ReadLine();
         }
@@ -87,7 +92,7 @@ namespace Speare.Testing
 
         static void Main(string[] args)
         {
-            VMTest();
+            TokenizerTest();
         }
     }
 }

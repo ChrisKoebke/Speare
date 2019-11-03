@@ -47,7 +47,7 @@ namespace Speare.Parser
 
         public static bool IsWhitespace(char character)
         {
-            return character == ' ' || character == '\t';
+            return character == ' ' || character == '\t' || character == '\n';
         }
     }
 }

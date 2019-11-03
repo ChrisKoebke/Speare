@@ -9,12 +9,14 @@ namespace Speare.Parser
 {
     public class Token
     {
-        public StringSpan Span = new StringSpan();
         public TokenType Type;
-        
+        public int LineNumber;
+
+        public StringSpan Span = new StringSpan();
+
         public string ToFormattedString()
         {
-            if (Type == TokenType.EOF)
+            if (Type == TokenType.EndOfFile)
                 return "EOF";
 
             return string.Format("{0} '{1}'", Type.ToString(), Span.ToString());

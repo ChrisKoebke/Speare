@@ -25,6 +25,6 @@ namespace Speare.Parser
         EndGameEvent,
         GameEvent,
         Error,
-        EOF
+        EndOfFile
     }
 }
