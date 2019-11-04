@@ -124,7 +124,7 @@ namespace Speare.Parser
             return false;
         }
 
-        public static bool TokenizeMethod(string code, ref int tokenIndex, ref int startIndex, int lineNumber)
+        public static bool TokenizeMethodName(string code, ref int tokenIndex, ref int startIndex, int lineNumber)
         {
             var index = startIndex;
 
@@ -132,7 +132,7 @@ namespace Speare.Parser
             {
                 if (code[index] == Chars.OpenParenthesis && index > startIndex)
                 {
-                    AddToken(code, ref tokenIndex, ref startIndex, index, lineNumber, TokenType.Method);
+                    AddToken(code, ref tokenIndex, ref startIndex, index, lineNumber, TokenType.MethodName);
                     return true;
                 }
 
@@ -251,7 +251,7 @@ namespace Speare.Parser
 
                 var result = TokenizeBeginBlock(code, ref tokenIndex, ref startIndex, lineNumber) ||
                              TokenizeEndBlock(code, ref tokenIndex, ref startIndex, lineNumber) ||
-                             TokenizeMethod(code, ref tokenIndex, ref startIndex, lineNumber) ||
+                             TokenizeMethodName(code, ref tokenIndex, ref startIndex, lineNumber) ||
                              TokenizeOpenParenthesis(code, ref tokenIndex, ref startIndex, lineNumber) ||
                              TokenizeCloseParenthesis(code, ref tokenIndex, ref startIndex, lineNumber) ||
                              TokenizeParameterSeparator(code, ref tokenIndex, ref startIndex, lineNumber) ||

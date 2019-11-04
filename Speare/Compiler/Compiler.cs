@@ -1,4 +1,5 @@
 ﻿using Speare.Parser;
+using Speare.Runtime;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -34,25 +35,37 @@ namespace Speare.Compiler
             _current = _tokens[_tokenIndex++];
         }
 
-        private static void AddError(Token token, string format)
+        private static void Error(Token token, string message)
         {
             _errors.Add(new CompilerError
             {
                 StartIndex = token.Span.StartIndex,
                 Length = token.Span.Length,
                 LineNumber = token.LineNumber,
-                Message = string.Format(format, token.ToString(), token.LineNumber)
+                Message = string.Format("Invalid '{0}' in line {1}: {2}", token.ToString(), token.LineNumber, message)
             });
         }
 
         private static bool Assert(TokenType type, string message)
         {
+            if (_current.Type != type)
+            {
+                Error(_current, message);
+                return false;
+            }
+
             MoveNext();
             return true;
         }
 
-        private static bool AssertAny(TokenType[] type, string message)
+        private static bool AssertAny(TokenType[] types, string message)
         {
+            if (!types.Contains(_current.Type))
+            {
+                Error(_current, message);
+                return false;
+            }
+
             MoveNext();
             return true;
         }
@@ -68,7 +81,7 @@ namespace Speare.Compiler
                     default:
                         if (depth == 0)
                         {
-                            AddError(_tokens[i], "Only methods are allowed on root level.");
+                            Error(_tokens[i], "Only methods are allowed on root level.");
                         }
                         break;
                     case TokenType.BeginBlock:
@@ -77,7 +90,7 @@ namespace Speare.Compiler
                     case TokenType.EndBlock:
                         depth--;
                         break;
-                    case TokenType.Method:
+                    case TokenType.MethodName:
                         if (depth == 0)
                         {
                             _methods[_tokens[i].Span.ToString()] = _methods.Count;
@@ -89,9 +102,14 @@ namespace Speare.Compiler
             }
         }
 
+        private static void CompileInteger()
+        {
+
+        }
+
         private static void CompileMethodCall()
         {
-            Assert(TokenType.Method, "Method expected.");
+            Assert(TokenType.MethodName, "Method expected.");
             Assert(TokenType.OpenParenthesis, "'(' expected.");
 
             while (_current.Type != TokenType.CloseParenthesis && _current.Type != TokenType.EndOfFile)
@@ -110,7 +128,7 @@ namespace Speare.Compiler
             {
                 switch (_current.Type)
                 {
-                    case TokenType.Method:
+                    case TokenType.MethodName:
                         CompileMethodCall();
                         break;
                 }
@@ -134,7 +152,7 @@ namespace Speare.Compiler
                 if (_current.Type == TokenType.EndOfFile)
                     break;
 
-                if (Assert(TokenType.Method, "Only methods are allowed on root level."))
+                if (Assert(TokenType.MethodName, "Only methods are allowed on root level."))
                 {
                     CompileMethodDefinition();
                 }

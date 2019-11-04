@@ -60,7 +60,7 @@ namespace Speare.Testing
 
         static void TokenizerTest()
         {
-            var code = "{\n TestMethod(1, 2)\n}\nTestMethod(a, b)\n{\n}";
+            var code = "{\n TestMethod(OtherMethod(), 2)\n}\nTestMethod(a, b)\n{\n}";
 
             var tokens = Lexer.Tokenize(code);
             foreach (var token in tokens)
@@ -74,7 +74,7 @@ namespace Speare.Testing
             OpBuilder ops;
             List<CompilerError> errors;
 
-            Compiler.Compiler.Compile(tokens, out ops, out errors);
+            //Compiler.Compiler.Compile(tokens, out ops, out errors);
 
             Console.ReadLine();
         }

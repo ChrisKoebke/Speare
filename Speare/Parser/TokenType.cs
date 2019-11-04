@@ -11,7 +11,7 @@ namespace Speare.Parser
         None,
         BeginBlock,
         EndBlock,
-        Method,
+        MethodName,
         Identifier,
         ParameterSeparator,
         OpenParenthesis,

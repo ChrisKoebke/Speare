@@ -95,18 +95,25 @@ namespace Speare.Compiler
 
         public void Write(string value)
         {
-            BoundsCheck(value.Length);
-
             fixed (char* source = value)
+            {
+                Write(source, value.Length);
+            }
+        }
+
+        public void Write(char* source, int length)
+        {
+            BoundsCheck(length);
+
             fixed (byte* destination = Data)
             {
                 // TODO: optimize
-                for (int i = 0; i < value.Length; i++)
+                for (int i = 0; i < length; i++)
                 {
                     *(destination + Position + i) = *(byte*)(source + i);
                 }
 
-                Position += value.Length;
+                Position += length;
             }
         }
     }

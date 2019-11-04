@@ -77,17 +77,24 @@ namespace Speare.Compiler
 
         public OpBuilder Constant(Register reg, string value)
         {
+            fixed (char* source = value)
+            {
+                return Constant(reg, source, value.Length);
+            }
+        }
+
+        public OpBuilder Constant(Register reg, char* value, int length)
+        {
             _ops.Write((short)Op.Constant);
             _ops.Write((byte)reg);
             _ops.Write((byte)DataType.String);
             _ops.Write(_chrhAddress);
 
             _chrh.Write(_chrbOpAddress);
-            _chrh.Write(value.Length);
+            _chrh.Write(length);
+            _chrb.Write(value, length);
 
-            _chrb.Write(value);
-            
-            _chrbOpAddress += value.Length;
+            _chrbOpAddress += length;
             _chrhAddress += 1;
 
             return this;
