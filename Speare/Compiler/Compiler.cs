@@ -78,12 +78,6 @@ namespace Speare.Compiler
             {
                 switch (_tokens[i].Type)
                 {
-                    default:
-                        if (depth == 0)
-                        {
-                            Error(_tokens[i], "Only methods are allowed on root level.");
-                        }
-                        break;
                     case TokenType.BeginBlock:
                         depth++;
                         break;
