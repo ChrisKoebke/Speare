@@ -102,7 +102,7 @@ namespace Speare.Compiler
 
         public OpBuilder GlobalRead(Register reg, string name)
         {
-            return GlobalRead(reg, name.GetHashCode32());
+            return GlobalRead(reg, Hash.GetHashCode32(name));
         }
 
         public OpBuilder GlobalRead(Register reg, int hash)
@@ -116,7 +116,7 @@ namespace Speare.Compiler
 
         public OpBuilder GlobalWrite(string name, Register reg)
         {
-            return GlobalWrite(name.GetHashCode32(), reg);
+            return GlobalWrite(Hash.GetHashCode32(name), reg);
         }
 
         public OpBuilder GlobalWrite(int hash, Register reg)
@@ -128,12 +128,18 @@ namespace Speare.Compiler
             return this;
         }
 
-        public OpBuilder Method(int parameterCount = 0)
+        public OpBuilder Method(string name, int parameterCount = 0)
+        {
+            return Method(Hash.GetHashCode32(name), parameterCount);
+        }
+
+        public OpBuilder Method(int hash, int parameterCount = 0)
         {
             _ops.Write((short)Op.MethodDefinition);
 
             _mth.Write((short)_ops.Position);
             _mth.Write((byte)parameterCount);
+            _mth.Write(hash);
 
             return this;
         }
@@ -155,7 +161,7 @@ namespace Speare.Compiler
         public OpBuilder Interop(string methodName)
         {
             _ops.Write((short)Op.Interop);
-            _ops.Write(methodName.GetHashCode32());
+            _ops.Write(Hash.GetHashCode32(methodName));
 
             return this;
         }

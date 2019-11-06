@@ -17,8 +17,8 @@ namespace Speare.Compiler
         private static Token _current;
 
         private static OpBuilder _ops = new OpBuilder();
-        private static Dictionary<string, int> _methods = new Dictionary<string, int>();
-        private static Stack<Token> _stack = new Stack<Token>();
+        private static Dictionary<StringSpan, int> _methods = new Dictionary<StringSpan, int>();
+        private static Stack<RegisterManager> _registers = new Stack<RegisterManager>();
         private static List<CompilerError> _errors = new List<CompilerError>();
 
         private static void Clear()
@@ -26,7 +26,7 @@ namespace Speare.Compiler
             _ops.Clear();
             _errors.Clear();
             _methods.Clear();
-            _stack.Clear();
+            _registers.Clear();
         }
 
         private static void MoveNext()
@@ -39,8 +39,8 @@ namespace Speare.Compiler
         {
             _errors.Add(new CompilerError
             {
-                StartIndex = token.Span.StartIndex,
-                Length = token.Span.Length,
+                TokenType = token.Type,
+                Span = token.Span,
                 LineNumber = token.LineNumber,
                 Message = string.Format("Invalid '{0}' in line {1}: {2}", token.ToString(), token.LineNumber, message)
             });
@@ -87,7 +87,7 @@ namespace Speare.Compiler
                     case TokenType.MethodName:
                         if (depth == 0)
                         {
-                            _methods[_tokens[i].Span.ToString()] = _methods.Count;
+                            _methods[_tokens[i].Span] = _methods.Count;
                         }
                         break;
                     case TokenType.EndOfFile:

@@ -55,8 +55,8 @@ namespace Speare.Runtime
 
         public object this[string varName]
         {
-            get { return this[varName.GetHashCode32()]; }
-            set { this[varName.GetHashCode32()] = value; }
+            get { return this[Hash.GetHashCode32(varName)]; }
+            set { this[Hash.GetHashCode32(varName)] = value; }
         }
 
         public object this[int varHash]

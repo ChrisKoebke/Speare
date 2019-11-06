@@ -22,7 +22,7 @@ namespace Speare.Testing
         {
             return new OpBuilder()
 
-            .Method()
+            .Method("Start")
                 .Constant(Register.R0, 0)
                 .Constant(Register.R1, 5)
                 .Label(":loop")
@@ -39,7 +39,7 @@ namespace Speare.Testing
                 .DebugPrint(Register.LastResult)
                 .GlobalRead(Register.Param0, "TestVar")
                 .Interop("PrintVector")
-            .Method(parameterCount: 1)
+            .Method("TestMethod", parameterCount: 1)
                 .GlobalRead(Register.Local0, "TestVar")
                 .DebugPrint(Register.Param0)
                 .Constant(Register.LastResult, 199)
@@ -50,7 +50,7 @@ namespace Speare.Testing
         {
             return new OpBuilder()
 
-            .Method()
+            .Method("Start")
                 .GlobalRead(Register.Local0, "TestVar")
                 .Constant(Register.Local1, 100)
                 .Arithmetic(Register.Local0, Register.Local1, Arithmetic.Multiply)

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Speare.Utility;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -308,6 +309,11 @@ namespace Speare.Parser
             }
 
             return result;
+        }
+
+        public override int GetHashCode()
+        {
+            return Hash.GetHashCode32(StringPointer, Length);
         }
 
         public override string ToString()
