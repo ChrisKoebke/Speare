@@ -36,14 +36,11 @@ namespace Speare.Parser
         {
             var token = _tokens[tokenIndex] ?? (_tokens[tokenIndex] = new Token());
 
-            fixed (char* stringPointer = code)
-            {
-                token.Type = type;
-                token.LineNumber = lineNumber;
-                token.Span.StringPointer = stringPointer;
-                token.Span.StartIndex = startIndex;
-                token.Span.Length = endIndex - startIndex;
-            }
+            token.Type = type;
+            token.LineNumber = lineNumber;
+            token.Span.Value = code;
+            token.Span.StartIndex = startIndex;
+            token.Span.Length = endIndex - startIndex;
 
             tokenIndex++;
             startIndex = endIndex;

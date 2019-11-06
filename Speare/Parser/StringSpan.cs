@@ -9,33 +9,28 @@ using System.Threading.Tasks;
 
 namespace Speare.Parser
 {
-    public enum StringSpanCase
+    public unsafe struct StringSpan
     {
-        Default,
-        Uppercase,
-        Lowercase
-    }
-
-    public unsafe class StringSpan
-    {
-        internal StringSpan()
+        public StringSpan(string value, int startIndex, int length)
         {
-        }
-
-        public StringSpan(char* pointer, int startIndex, int length)
-        {
-            StringPointer = pointer;
+            Value = value;
             StartIndex = startIndex;
             Length = length;
         }
 
-        public char* StringPointer;
+        public string Value;
         public int StartIndex;
         public int Length;
         
         public char this[int index]
         {
-            get { return *(StringPointer + index + StartIndex); }
+            get
+            {
+                fixed (char* pointer = Value)
+                {
+                    return *(pointer + StartIndex + index);
+                }
+            }
         }
 
         public int EndIndex
@@ -44,7 +39,7 @@ namespace Speare.Parser
             set { Length = value - StartIndex; }
         }
 
-        public List<StringSpan> Split(char character)
+        public IList<StringSpan> Split(char character)
         {
             var list = new List<StringSpan>();
             var startIndex = 0;
@@ -53,12 +48,12 @@ namespace Speare.Parser
             {
                 if (this[i] == character)
                 {
-                    list.Add(new StringSpan(StringPointer, StartIndex + startIndex, i - startIndex));
+                    list.Add(new StringSpan(Value, StartIndex + startIndex, i - startIndex));
                     startIndex = i + 1;
                 }
             }
 
-            list.Add(new StringSpan(StringPointer, StartIndex + startIndex, Length - startIndex));
+            list.Add(new StringSpan(Value, StartIndex + startIndex, Length - startIndex));
             return list;
         }
 
@@ -82,7 +77,7 @@ namespace Speare.Parser
                 }
             }
 
-            return new StringSpan(StringPointer, StartIndex + delta, Length - delta);
+            return new StringSpan(Value, StartIndex + delta, Length - delta);
         }
 
         public StringSpan TrimEnd()
@@ -104,7 +99,7 @@ namespace Speare.Parser
                 }
             }
 
-            return new StringSpan(StringPointer, StartIndex, Length - delta);
+            return new StringSpan(Value, StartIndex, Length - delta);
         }
 
         public StringSpan Trim()
@@ -138,17 +133,17 @@ namespace Speare.Parser
                 }
             }
 
-            return new StringSpan(StringPointer, StartIndex + startDelta, Length - startDelta - endDelta);
+            return new StringSpan(Value, StartIndex + startDelta, Length - startDelta - endDelta);
         }
 
         public StringSpan Substring(int startIndex)
         {
-            return new StringSpan(StringPointer, StartIndex + startIndex, Length - startIndex);
+            return new StringSpan(Value, StartIndex + startIndex, Length - startIndex);
         }
 
         public StringSpan Substring(int startIndex, int length)
         {
-            return new StringSpan(StringPointer, StartIndex + startIndex, length);
+            return new StringSpan(Value, StartIndex + startIndex, length);
         }
 
         public int IndexOf(char character, int startIndex = 0)
@@ -335,8 +330,8 @@ namespace Speare.Parser
 
         public override bool Equals(object obj)
         {
-            var span = obj as StringSpan;
-            if (span == null)
+            var span = (StringSpan)obj;
+            if (span.Value == null)
                 return false;
 
             if (span.Length != Length)
@@ -353,12 +348,18 @@ namespace Speare.Parser
 
         public override int GetHashCode()
         {
-            return Hash.GetHashCode32(StringPointer, Length);
+            fixed (char* pointer = Value)
+            {
+                return Hash.GetHashCode32(pointer, Length);
+            }
         }
 
         public override string ToString()
         {
-            return new string(StringPointer, StartIndex, Length);
+            fixed (char* pointer = Value)
+            {
+                return new string(pointer, StartIndex, Length);
+            }
         }
     }
 
@@ -366,26 +367,17 @@ namespace Speare.Parser
     {
         public static StringSpan ToSpan(this string value, int startIndex, int length)
         {
-            fixed (char* pointer = value)
-            {
-                return new StringSpan(pointer, startIndex, length);
-            }
+            return new StringSpan(value, startIndex, length);
         }
 
         public static StringSpan ToSpan(this string value, int startIndex)
         {
-            fixed (char* pointer = value)
-            {
-                return new StringSpan(pointer, startIndex, value.Length - startIndex);
-            }
+            return new StringSpan(value, startIndex, value.Length - startIndex);
         }
 
         public static StringSpan ToSpan(this string value)
         {
-            fixed (char* pointer = value)
-            {
-                return new StringSpan(pointer, 0, value.Length);
-            }
+            return new StringSpan(value, 0, value.Length);
         }
     }
 }
