@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Speare.Compiler
 {
-    public class RegisterManager
+    public class Scope
     {
         private Dictionary<string, Register> _nameToRegister = new Dictionary<string, Register>();
         private Dictionary<Register, string> _registerToName = new Dictionary<Register, string>();

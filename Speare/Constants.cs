@@ -8,7 +8,7 @@ namespace Speare
 {
     public static class Constants
     {
-        public const int RegisterCount = 34;
+        public const int RegisterCount = 18;
 
         public const int SizeOfHeaderElement = 4;
         public const int SizeOfHeader = SizeOfHeaderElement * 4;

@@ -1,6 +1,5 @@
 ﻿using Speare.Compiler;
 using Speare.Parser;
-using Speare.Runtime;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -8,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Speare.Runtime;
 
 namespace Speare.Testing
 {
@@ -23,17 +23,17 @@ namespace Speare.Testing
             return new OpBuilder()
 
             .Method("Start")
-                .Constant(Register.R0, 0)
-                .Constant(Register.R1, 5)
+                .Constant(Register.Local0, 0)
+                .Constant(Register.Local1, 5)
                 .Label(":loop")
-                .Constant(Register.R2, 1)
-                .Arithmetic(Register.R0, Register.R2, Arithmetic.Add)
-                .Set(Register.R0, Register.LastResult)
-                .DebugPrint(Register.R0)
-                .Arithmetic(Register.R0, Register.R1, Arithmetic.LessThan)
+                .Constant(Register.Local2, 1)
+                .Arithmetic(Register.Local0, Register.Local2, Arithmetic.Add)
+                .Set(Register.Local0, Register.LastResult)
+                .DebugPrint(Register.Local0)
+                .Arithmetic(Register.Local0, Register.Local1, Arithmetic.LessThan)
                 .JumpIf(":loop")
-                .Constant(Register.R3, "We made it through the loop!")
-                .DebugPrint(Register.R3)
+                .Constant(Register.Local3, "We made it through the loop!")
+                .DebugPrint(Register.Local3)
                 .Constant(Register.Param0, "Another test")
                 .Call(methodIndex: 1)
                 .DebugPrint(Register.LastResult)

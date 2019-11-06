@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Runtime\Register.cs~RF1f9a715.TMP" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.6.0" />
   </ItemGroup>
 

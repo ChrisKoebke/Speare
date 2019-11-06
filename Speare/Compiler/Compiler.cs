@@ -18,7 +18,7 @@ namespace Speare.Compiler
 
         private static OpBuilder _ops = new OpBuilder();
         private static Dictionary<StringSpan, int> _methods = new Dictionary<StringSpan, int>();
-        private static Stack<RegisterManager> _registers = new Stack<RegisterManager>();
+        private static Stack<Scope> _scopes = new Stack<Scope>();
         private static List<CompilerError> _errors = new List<CompilerError>();
 
         private static void Clear()
@@ -26,7 +26,7 @@ namespace Speare.Compiler
             _ops.Clear();
             _errors.Clear();
             _methods.Clear();
-            _registers.Clear();
+            _scopes.Clear();
         }
 
         private static void MoveNext()
