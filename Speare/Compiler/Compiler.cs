@@ -42,7 +42,7 @@ namespace Speare.Compiler
                 TokenType = token.Type,
                 Span = token.Span,
                 LineNumber = token.LineNumber,
-                Message = string.Format("Invalid '{0}' in line {1}: {2}", token.ToString(), token.LineNumber, message)
+                Message = message
             });
         }
 

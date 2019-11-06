@@ -165,10 +165,9 @@ namespace Speare.Parser
         
         public bool Contains(string value)
         {
-            var endIndex = Length - value.Length;
-            for (int i = 0; i < endIndex; i++)
+            for (int i = 0; i < Length; i++)
             {
-                for (int j = 0; j < value.Length; j++)
+                for (int j = 0; j < value.Length && i + j < Length; j++)
                 {
                     if (this[i + j] != value[j])
                         break;
@@ -183,10 +182,9 @@ namespace Speare.Parser
 
         public bool Contains(StringSpan value)
         {
-            var endIndex = Length - value.Length;
-            for (int i = 0; i < endIndex; i++)
+            for (int i = 0; i < Length; i++)
             {
-                for (int j = 0; j < value.Length; j++)
+                for (int j = 0; j < value.Length && i + j < Length; j++)
                 {
                     if (this[i + j] != value[j])
                         break;
@@ -311,6 +309,48 @@ namespace Speare.Parser
             return result;
         }
 
+        public static bool operator ==(StringSpan self, StringSpan other)
+        {
+            if (Equals(self, null) && Equals(other, null))
+                return true;
+
+            if (Equals(self, null) && !Equals(other, null) ||
+                !Equals(self, null) && Equals(other, null))
+                return false;
+
+            return self.Equals(other);
+        }
+
+        public static bool operator !=(StringSpan self, StringSpan other)
+        {
+            if (Equals(self, null) && Equals(other, null))
+                return false;
+
+            if (Equals(self, null) && !Equals(other, null) ||
+                !Equals(self, null) && Equals(other, null))
+                return true;
+
+            return !self.Equals(other);
+        }
+
+        public override bool Equals(object obj)
+        {
+            var span = obj as StringSpan;
+            if (span == null)
+                return false;
+
+            if (span.Length != Length)
+                return false;
+
+            for (int i = 0; i < Length; i++)
+            {
+                if (span[i] != this[i])
+                    return false;
+            }
+
+            return true;
+        }
+
         public override int GetHashCode()
         {
             return Hash.GetHashCode32(StringPointer, Length);
@@ -324,6 +364,22 @@ namespace Speare.Parser
 
     public static unsafe class StringSpanExtensions
     {
+        public static StringSpan ToSpan(this string value, int startIndex, int length)
+        {
+            fixed (char* pointer = value)
+            {
+                return new StringSpan(pointer, startIndex, length);
+            }
+        }
+
+        public static StringSpan ToSpan(this string value, int startIndex)
+        {
+            fixed (char* pointer = value)
+            {
+                return new StringSpan(pointer, startIndex, value.Length - startIndex);
+            }
+        }
+
         public static StringSpan ToSpan(this string value)
         {
             fixed (char* pointer = value)
