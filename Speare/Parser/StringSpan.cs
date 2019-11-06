@@ -306,25 +306,11 @@ namespace Speare.Parser
 
         public static bool operator ==(StringSpan self, StringSpan other)
         {
-            if (Equals(self, null) && Equals(other, null))
-                return true;
-
-            if (Equals(self, null) && !Equals(other, null) ||
-                !Equals(self, null) && Equals(other, null))
-                return false;
-
             return self.Equals(other);
         }
 
         public static bool operator !=(StringSpan self, StringSpan other)
         {
-            if (Equals(self, null) && Equals(other, null))
-                return false;
-
-            if (Equals(self, null) && !Equals(other, null) ||
-                !Equals(self, null) && Equals(other, null))
-                return true;
-
             return !self.Equals(other);
         }
 
